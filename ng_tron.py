@@ -12,11 +12,14 @@ def init_board(size):
     board = np.zeros((size, size))
     return board
 
+
 def valid_move(size, coord, board):
-    if coord[0] > -1 and coord[1] > -1 and coord[0] < size and coord[1] < size and board[coord[0], coord[1]] == 0:
-        return True
-    else:
-        return False
+    '''Checks if the move is valid: 
+        (1) in the board bounds.
+        (2) the space id empty.'''
+    return np.all(np.greater(coord, -1)) and \
+           np.all(np.less(coord, size)) and \
+           board[coord[0], coord[1]] == 0  # 0 means empty state
 
 
 def init_cycles(size, num_cycle, cycle_len):
