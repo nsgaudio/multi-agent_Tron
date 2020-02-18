@@ -15,11 +15,29 @@ def inside(head):
 
 class EnvTest(object):
     def __init__(self, board_shape=(25, 25), num_players=2):
+        """
+        self.num_iters: counting the horizon, if we want to use survival time as rewards later
+        self.action_space: {0,1,2}
+                           0: stay in current direction
+                           1: turn 90 degree, counter-clockwise
+                           2: turn -90 degree, counter-clockwise
+        self.palyers_head: list of vectors, length = num_players
+                           vector v = (v.x, v.y)
+                           self.palyers_head[i]: head position of player i on the board
+        self.palyers_dir:  list of vectors, length = num_players
+                           self.palyers_dir[i] : direction of player i on the board
+                           example: (0,1), (1,0), (0,-1), (-1,0)
+        self.palyers_body: list of sets of vectors, length = num_players
+                           self.palyers_body[i]: set of vectors occupied by player i
+                           example: [{(v1.x, v1.y), (v2.x, v2.y)}, {...}, ...]
+        self.observation:  board, the pixels in player i's body will be marked as "i"
+                           input of our network?
+
+        """
         self.num_iters = 0
         self.action_space = ActionSpace(3)
         self.board_shape = board_shape
         self.num_players = num_players
-
         
         self.players_head = [vector(2*i, 0) for i in range(num_players)] ### TODO: player init
         self.players_body = [{self.players_head[i]} for i in range(num_players)]
@@ -28,6 +46,9 @@ class EnvTest(object):
         self.update_observation()
     
     def update_observation(self):
+        """
+            add head to body, do nothing if head exceeds the board
+        """
         for i in range(self.num_players):
             try:
                 self.observation[self.players_head[i].y, self.players_head[i].x] = i + 1
@@ -44,6 +65,10 @@ class EnvTest(object):
         self.update_observation()
         
     def step(self, actions):
+        """
+            update observation, rewards base on actions
+            actions: a list of action, len(actions) is num_players
+        """
         self.num_iters += 1
         
         # use action to update head and body
@@ -104,9 +129,12 @@ if __name__ == '__main__':
     while(True):
         _, r, done, _ = env.step([0,0])
         env.render()
+
+        # visulize with ng's code
         # cycles = vecs_to_cycles(env.players_body)
         # board = make_board(size=width, cycles=cycles, num_cycle=2)
         # show_board(file_name=None, show=True, board=board, num_cycle=2)
+
         if done:
             break
 
