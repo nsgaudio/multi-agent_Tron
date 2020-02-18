@@ -14,6 +14,11 @@ def init_board(size):
 
 
 def init_cycles(size, num_cycle, cycle_len):
+    '''Creates the cycles matrix of form:
+        Head -> [[c1y, c1y, c1y, ...] <- Tail
+                 [c1x, c1x, c1x, ...]
+                 [c2y, c2y, c2y, ...]
+                 [c2x, c2x, c2x, ...]]'''
     cycles = np.zeros((2*num_cycle, cycle_len))
 
     for c in range(1, num_cycle+1):
@@ -21,8 +26,7 @@ def init_cycles(size, num_cycle, cycle_len):
         cycles[2*c-2, :] = np.array(range(y_2, y_2-cycle_len, -1))
         cycles[2*c-1, :] = int(c*size/(num_cycle+1))
         cycles = cycles.astype(int)
-    
-    print(cycles)
+    print('Cycles matrix:\n', cycles)
     return cycles
 
 
@@ -35,8 +39,6 @@ def show_board(file_name, cycles, board, num_cycle):
     cmap = colors.ListedColormap(cycle_colors)
 
     for c in range(1, num_cycle+1):
-        print(2*c-2)
-        print(2*c-1)
         board[cycles[2*c-2, :], cycles[2*c-1, :]] = c
     plt.pcolor(board,cmap=cmap,edgecolors='k', linewidths=1)
     plt.show()
