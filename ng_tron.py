@@ -41,36 +41,33 @@ def update_cycles(size, cycles, num_cycle):
     s_p = np.zeros((cycles.shape[0], 1))
 
     for c in range(1, num_cycle+1):
-        possible = []
         head  = cycles[2*c-2:2*c, 0]
-        print('head', head[1])
+        behind = cycles[2*c-2:2*c, 1]
+        direction = head - behind
+        forward = head + direction
 
-        up    = [head[0]-1, head[1]]
-        down  = [head[0]+1, head[1]]
-        left  = [head[0], head[1]-1]
-        right = [head[0], head[1]+1]
-        print('up', up)
-        
-        a = 0
-
-        if valid_move(size=size, coord=up, board=board): possible.append(up)
-        if valid_move(size=size, coord=down, board=board): possible.append(down)
-        if valid_move(size=size, coord=left, board=board): possible.append(left)
-        if valid_move(size=size, coord=right, board=board): possible.append(right)
-        possible = np.array(possible)
-        print('possible:', possible.shape)
-        print(possible)
-        selected = possible[np.random.randint(0, high=possible.shape[0]), :]
-        print('selected', selected)
+        if valid_move(size=size, coord=forward, board=board):
+            selected = forward
+        else:
+            possible = []
+            up    = [head[0]-1, head[1]]
+            down  = [head[0]+1, head[1]]
+            left  = [head[0], head[1]-1]
+            right = [head[0], head[1]+1]
+            if valid_move(size=size, coord=up, board=board): possible.append(up)
+            if valid_move(size=size, coord=down, board=board): possible.append(down)
+            if valid_move(size=size, coord=left, board=board): possible.append(left)
+            if valid_move(size=size, coord=right, board=board): possible.append(right)
+            possible = np.array(possible)
+            print('possible shape:', possible.shape)
+            print(possible)
+            selected = possible[np.random.randint(0, high=possible.shape[0]), :]
+        print('selected:', selected)
         s_p[2*c-2:2*c] = np.expand_dims(selected, axis=-1)
 
-
-
-
-    print(cycles)
     cycles = np.append(s_p, cycles, axis=1).astype(int)
     cycles = np.delete(cycles, -1, axis=1)
-    print(cycles)
+    print('Cycles matrix:\n', cycles)
     return cycles
 
 
@@ -84,12 +81,11 @@ def make_board(size, cycles, num_cycle):
 def show_board(file_name, show, board, num_cycle):
     '''Makes a plot of the game board.'''
     fig = plt.figure()
-    cycle_colors = ['white','red', 'blue', 'green', 'orange', 'purple']  # white is board color, others are cycles
+    cycle_colors = ['white', 'red', 'blue', 'green', 'orange', 'purple']  # white is board color, others are cycles
     cycle_colors = cycle_colors[:num_cycle+1]
     cmap = colors.ListedColormap(cycle_colors)
     plt.pcolor(board, cmap=cmap, edgecolors='k', linewidths=1)
     if show:
-        # plt.show()
         plt.draw()
         plt.pause(0.25)
         plt.clf()
@@ -107,7 +103,6 @@ if __name__ == '__main__':
     cycles = init_cycles(size=size, num_cycle=num_cycle, cycle_len=cycle_len)
     board = make_board(size=size, cycles=cycles, num_cycle=num_cycle)
     show_board(file_name=None, show=show, board=board, num_cycle=num_cycle)
-
 
     for t in range(time_steps):
         cycles = update_cycles(size, cycles, num_cycle)
