@@ -1,7 +1,7 @@
 import numpy as np
 
 from matplotlib import colors
-class config():
+class Config():
     def __init__(self):
         ########## Env config #########
 
