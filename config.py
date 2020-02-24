@@ -32,3 +32,5 @@ class Config():
         self.EPS_END = 0.05
         self.EPS_DECAY = 200
         self.TARGET_UPDATE = 10
+
+  
