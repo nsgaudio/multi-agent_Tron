@@ -25,4 +25,13 @@ class Config():
         ########## Q learning config #########
         self.time_steps     = 1000
 
+
+        ######## Training parameters #########
+        self.BATCH_SIZE = 128
+        self.GAMMA = 0.999
+        self.EPS_START = 0.9
+        self.EPS_END = 0.05
+        self.EPS_DECAY = 200
+        self.TARGET_UPDATE = 10
+
   
