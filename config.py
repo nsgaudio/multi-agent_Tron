@@ -1,12 +1,12 @@
 import numpy as np
 
 from matplotlib import colors
-class config():
+class Config():
     def __init__(self):
         ########## Env config #########
 
         # init
-        self.board_size     = (25, 25)
+        self.board_size     = [35, 35]
         self.num_players    = 3
         
         # snake dynamics
@@ -25,4 +25,10 @@ class config():
         ########## Q learning config #########
         self.time_steps     = 1000
 
-  
+        ######## Training parameters #########
+        self.BATCH_SIZE = 128
+        self.GAMMA = 0.999
+        self.EPS_START = 0.9
+        self.EPS_END = 0.05
+        self.EPS_DECAY = 200
+        self.TARGET_UPDATE = 10
