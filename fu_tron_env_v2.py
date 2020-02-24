@@ -1,6 +1,5 @@
 import numpy as np
-from utils import vector
-from ng_tron import make_board, show_board
+from utils import vector, show_board
 from config import *
 from collections import deque
 
@@ -18,10 +17,10 @@ class ActionSpace(object):
 
 class EnvTest(object):
     def __init__(self):
-        self.config = config()
+        self.config = Config()
         self.num_iters = 0
         self.action_space = ActionSpace(self.config.num_players)
-        self.board_shape = self.config.board_size
+        self.board_shape = self.config.board_shape
         self.num_players = self.config.num_players
         self.init_len = self.config.init_len
         self.lengthen_every = self.config.lengthen_every
@@ -34,6 +33,10 @@ class EnvTest(object):
 
         # visualization
         self.show = self.config.show
+        if self.show:
+            self.colors = self.config.colors
+            self.cmap = self.config.cmap
+            self.filename = self.config.filename
     
     def init_board(self):
 
@@ -41,9 +44,14 @@ class EnvTest(object):
         snakes = []
 
         mid_height = int(self.board_shape[0] / 2)        
-        for snake in range(self.num_players):
+        for i in range(self.num_players):
             # init each snake with length init_len
-            pass
+            x = int( (i+1) * self.board_shape[1] / (self.num_players+1) )
+            init_vecs = [vector(x, y) for y in range(mid_height, mid_height - self.init_len, -1)]
+            snakes.append(deque(init_vecs))
+
+            for vec in init_vecs:
+                ob[vec.y, vec.x] = i+1
 
         return ob, snakes
     
@@ -69,81 +77,97 @@ class EnvTest(object):
         """
             update observation, rewards base on actions
             actions: a list of action, len(actions) is num_players
-            action == 0 : (1,  0) right
-                   == 1 : (0, -1) down
-                   == 2 : (-1, 0) left
-                   == 3 : (0,  1) up
+            action == 0 : (x, y) += (1,  0) right
+                   == 1 : (x, y) += (0, -1) down
+                   == 2 : (x, y) += (-1, 0) left
+                   == 3 : (x, y) += (0,  1) up
         """
-        self.num_iters += 1
-        
-        # use action to update head and body
-        for i in range(self.num_players):
-            assert(actions[i] in {0,1,2,3})
-
-            if actions[i] == 1:
-                self.players_dir[i].rotate(90)
-            elif actions[i] == 2:
-                self.players_dir[i].rotate(-90)
-
-            self.players_head[i] = self.players_head[i] + self.players_dir[i]
-            self.players_body[i].add(self.players_head[i])
-        
-        # check: outside of board / collision
+        self.num_iters += 1.0
+        new_heads = [] # (y, x)
         rewards = np.zeros(self.num_players)
         done = False
+
+        # use action to update tmp head
+        # check collision from tmp head to snakes
         for i in range(self.num_players):
-            head = self.players_head[i]
-            if not inside(head):
-                rewards[i] -= 1
+            assert(actions[i] in {0,1,2,3})
+            current_head = self.snakes[i][-1]
+
+            if actions[i] == 0:
+                tmp_head = current_head + vector(1,0)
+            elif actions[i] == 1:
+                tmp_head = current_head + vector(0,-1)
+            elif actions[i] == 2:
+                tmp_head = current_head + vector(-1,0)
+            elif actions[i] == 3:
+                tmp_head = current_head + vector(0,1)
+
+            new_heads.append(tmp_head)
+
+            if not self.inside(tmp_head):
+                rewards[i] += self.config.loss
                 done = True
                 print("player {} outside of board".format(i+1))
+            
             for j in range(self.num_players):
-                if i != j and head in self.players_body[j]:
-                    rewards[i] -= 1
-                    rewards[j] += 1
+                if tmp_head in self.snakes[j]:
+                    rewards[i] += self.config.loss
+                    rewards[j] += self.config.win 
                     done = True
                     print("{} in {}'s body".format(i+1,j+1))
         
-        self.update_observation()
+        # check collision within new_heads
+        checked = np.zeros(self.num_players, dtype=bool)
+        for i, head in enumerate(new_heads):
+            checked[i] = True
+            for j in range(i+1, self.num_players):
+                if not checked[j] and head == new_heads[j]:
+                    checked[j] = True
+                    rewards[i] += self.config.loss
+                    rewards[j] += self.config.loss
+                    done = True
+                    print("{} and {} bump into each other".format(i+1,j+1))
+
+        # update tmp head to snakes
+        # TODO: do we need to update deque if done? will deque be used?
+        for i, head in enumerate(new_heads):
+            self.snakes[i].append(head)
+            if not (self.num_iters % self.lengthen_every == 0):
+                self.snakes[i].popleft()
+
+        # update observation
+        if not done:
+            self.update_observation()
+
+        rewards += self.config.time_reward * self.num_iters
 
         return self.observation, rewards, done, {'num_iters':self.num_iters}
 
 
     def render(self):
         if self.show:
-            # make_board and show board
-            pass
+            show_board(self.observation, self.cmap, filename=self.filename)
         else:
             print(self.observation)
 
-
-def vecs_to_cycles(vecs):
-    """
-        Handling list of vectors to cycles(np.array)
-    """
-    num_cycles = len(vecs)
-    len_cycles = len(vecs[1])
-    cycles = np.zeros((2 * num_cycles, len_cycles))
-    for i, p in enumerate(vecs):
-        for j, v in enumerate(p):
-            cycles[2 * i + 1, j] = v.x
-            cycles[2 * i, j] = v.y
-    cycles = cycles.astype(int)
-    return cycles
+def hard_codes_policy(ob):
+    return 0
 
 if __name__ == '__main__':
-    width = 10
-    env = EnvTest(board_shape=(width, width), num_players=2)
+
+    env = EnvTest()
+    env.render()
+    # a1 = hard_codes_policy(env.observation)
+    # a2 = hard_codes_policy(env.observation)
 
     while(True):
-        _, r, done, _ = env.step([0,0])
+        A = ActionSpace(4)
+        ob, r, done, _ = env.step([0,0,0])
+        
+        # a1 = hard_codes_policy(ob)
+        # a2 = hard_codes_policy(ob)
+
         env.render()
-
-        # visulize with ng's code
-        # cycles = vecs_to_cycles(env.players_body)
-        # board = make_board(size=width, cycles=cycles, num_cycle=2)
-        # show_board(file_name=None, show=True, board=board, num_cycle=2)
-
         if done:
             break
 

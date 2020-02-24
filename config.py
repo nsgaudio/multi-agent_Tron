@@ -6,7 +6,7 @@ class Config():
         ########## Env config #########
 
         # init
-        self.board_size     = [35, 35]
+        self.board_shape     = [35, 35] # y, x
         self.num_players    = 3
         
         # snake dynamics
@@ -19,7 +19,12 @@ class Config():
         self.cmap           = colors.ListedColormap(self.colors[: self.num_players + 1])
 
         # other
-        self.file_name      = None
+        self.filename      = None
+
+        # reward
+        self.win = 1.0
+        self.loss = -1.0
+        self.time_reward = 0.001
         ##############################
 
         ########## Q learning config #########

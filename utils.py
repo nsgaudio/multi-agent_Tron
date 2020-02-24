@@ -8,70 +8,19 @@ import math
 import os
 
 
-def floor(value, size, offset=200):
-    """Floor of `value` given `size` and `offset`.
+from matplotlib import pyplot as plt
+from matplotlib import animation
 
-    The floor function is best understood with a diagram of the number line::
+def show_board(board, cmap, filename=None):
+    '''Makes a plot of the game board.'''
+    plt.pcolor(board, cmap=cmap, edgecolors='k', linewidths=1)
+    
+    plt.draw()
+    plt.pause(0.025)
+    plt.clf()
 
-         -200  -100    0    100   200
-        <--|--x--|-----|--y--|--z--|-->
-
-    The number line shown has offset 200 denoted by the left-hand tick mark at
-    -200 and size 100 denoted by the tick marks at -100, 0, 100, and 200. The
-    floor of a value is the left-hand tick mark of the range where it lies. So
-    for the points show above: ``floor(x)`` is -200, ``floor(y)`` is 0, and
-    ``floor(z)`` is 100.
-
-    >>> floor(10, 100)
-    0.0
-    >>> floor(120, 100)
-    100.0
-    >>> floor(-10, 100)
-    -100.0
-    >>> floor(-150, 100)
-    -200.0
-    >>> floor(50, 167)
-    -33.0
-
-    """
-    return float(((value + offset) // size) * size - offset)
-
-
-def path(filename):
-    "Return full path to `filename` in freegames module."
-    filepath = os.path.realpath(__file__)
-    dirpath = os.path.dirname(filepath)
-    fullpath = os.path.join(dirpath, filename)
-    return fullpath
-
-
-def line(a, b, x, y):
-    "Draw line from `(a, b)` to `(x, y)`."
-    import turtle
-    turtle.up()
-    turtle.goto(a, b)
-    turtle.down()
-    turtle.goto(x, y)
-
-
-def square(x, y, size, name):
-    """Draw square at `(x, y)` with side length `size` and fill color `name`.
-
-    The square is oriented so the bottom left corner is at (x, y).
-
-    """
-    import turtle
-    turtle.up()
-    turtle.goto(x, y)
-    turtle.down()
-    turtle.color(name)
-    turtle.begin_fill()
-
-    for count in range(4):
-        turtle.forward(size)
-        turtle.left(90)
-
-    turtle.end_fill()
+    if filename is not None:
+        plt.figure.savefig(filename)
 
 
 class vector(collections.Sequence):
