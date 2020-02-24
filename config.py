@@ -6,7 +6,7 @@ class Config():
         ########## Env config #########
 
         # init
-        self.board_size     = (25, 25)
+        self.board_size     = [35, 35]
         self.num_players    = 3
         
         # snake dynamics

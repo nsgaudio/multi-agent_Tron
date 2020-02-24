@@ -1,6 +1,6 @@
 import numpy as np
 from utils import vector
-# from ng_tron import make_board, show_board
+from ng_tron import make_board, show_board
 from config import *
 from collections import deque
 
@@ -18,7 +18,7 @@ class ActionSpace(object):
 
 class EnvTest(object):
     def __init__(self):
-        self.config = Config()
+        self.config = config()
         self.num_iters = 0
         self.action_space = ActionSpace(self.config.num_players)
         self.board_shape = self.config.board_size

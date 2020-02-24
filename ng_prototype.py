@@ -99,12 +99,17 @@ config = Config()  # added
 # init_screen = get_screen()  # commented
 
 # _, _, screen_height, screen_width = init_screen.shape  # commented
-screen_height = config.board_size[0]  # added
-screen_width = config.board_size[0]  # added
+screen_height = env.board_shape[0]  # added
+screen_width = env.board_shape[1]  # added
+
+# screen_height = 100  # added
+# screen_width = 100  # added
 
 # Get number of actions from gym action space
-n_actions = 4 #env.action_space.n
+n_actions = env.action_space.n
 
+
+print('see:   ', screen_height, screen_width, n_actions)
 policy_net = DQN(screen_height, screen_width, n_actions).to(device)
 target_net = DQN(screen_height, screen_width, n_actions).to(device)
 target_net.load_state_dict(policy_net.state_dict())
