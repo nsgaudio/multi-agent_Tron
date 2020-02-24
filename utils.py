@@ -17,7 +17,7 @@ def show_board(board, cmap, delay=0.025, filename=None):
     
     plt.draw()
     plt.pause(delay)
-    plt.clf()
+    # plt.clf()
 
     if filename is not None:
         plt.figure.savefig(filename)

@@ -120,7 +120,7 @@ class EnvTest(object):
                    == 2 : (x, y) += (-1, 0) left
                    == 3 : (x, y) += (0,  1) up
         """
-        self.num_iters += 1.0
+        self.num_iters += 1
         new_heads = [] # (y, x)
         rewards = np.zeros(self.num_players)
         done = False
@@ -139,12 +139,15 @@ class EnvTest(object):
                 done = True
                 print("player {} outside of board".format(i+1))
             
-            for j in range(self.num_players):
-                if tmp_head in self.snakes[j]:
-                    rewards[i] += self.config.loss
-                    rewards[j] += self.config.win 
-                    done = True
-                    print("{} in {}'s body".format(i+1,j+1))
+            j = self.observation[tmp_head.y, tmp_head.x]
+            if j != 0:
+                rewards[i] += self.config.loss
+                rewards[j - 1] += self.config.win
+                done = True
+                print("{} in {}'s body".format(i+1,j))
+
+                # if tmp_head in self.snakes[j]:
+                    
         
         # check collision within new_heads
         checked = np.zeros(self.num_players, dtype=bool)
@@ -163,7 +166,9 @@ class EnvTest(object):
         for i, head in enumerate(new_heads):
             self.snakes[i].append(head)
             if not (self.num_iters % self.lengthen_every == 0):
-                self.snakes[i].popleft()
+                pos = self.snakes[i].popleft()
+                self.observation[pos.y, pos.x] = 0
+
 
         # update observation
         if not done:
@@ -177,8 +182,8 @@ class EnvTest(object):
     def render(self):
         if self.show:
             show_board(self.observation, self.cmap, delay=self.delay, filename=self.filename)
-        else:
-            print(self.observation)
+        # else:
+        print(self.observation)
 
 def hard_codes_policy(ob, head, a, board_shape,  A_space):
     """
