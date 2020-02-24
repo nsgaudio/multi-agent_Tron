@@ -25,7 +25,6 @@ class Config():
         ########## Q learning config #########
         self.time_steps     = 1000
 
-
         ######## Training parameters #########
         self.BATCH_SIZE = 128
         self.GAMMA = 0.999
