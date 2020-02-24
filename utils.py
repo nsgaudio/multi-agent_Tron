@@ -7,16 +7,16 @@ import collections
 import math
 import os
 
-
 from matplotlib import pyplot as plt
 from matplotlib import animation
 
-def show_board(board, cmap, filename=None):
+def show_board(board, cmap, delay=0.025, filename=None):
     '''Makes a plot of the game board.'''
+    
     plt.pcolor(board, cmap=cmap, edgecolors='k', linewidths=1)
     
     plt.draw()
-    plt.pause(0.025)
+    plt.pause(delay)
     plt.clf()
 
     if filename is not None:
