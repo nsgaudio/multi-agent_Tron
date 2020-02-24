@@ -173,8 +173,8 @@ class EnvTest(object):
         # update observation
         if not done:
             self.update_observation()
-
-        rewards += self.config.time_reward * self.num_iters
+        else:
+            rewards += self.config.time_reward * self.num_iters
 
         return self.observation, rewards, done, {'num_iters':self.num_iters, 'head_board':self.head_board}
 
@@ -236,9 +236,10 @@ if __name__ == '__main__':
         a2 = hard_codes_policy(env.observation, np.argwhere(hb == 2)[0], a2, env.board_shape, A)
         a3 = hard_codes_policy(env.observation, np.argwhere(hb == 3)[0], a3, env.board_shape, A)
 
-        ob, r, done, _ = env.step([a1,a2,a3])
+        ob, r, done, info = env.step([a1,a2,a3])
         
         if done:
+            print("iter: {}, rewards: {}".format(info['num_iters'], r))
             break
 
     
