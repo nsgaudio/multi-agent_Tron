@@ -242,4 +242,3 @@ if __name__ == '__main__':
             print("iter: {}, rewards: {}".format(info['num_iters'], r))
             break
 
-    
