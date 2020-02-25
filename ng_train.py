@@ -95,20 +95,10 @@ def select_action(input_stack, env):
         return torch.tensor([[random.randrange(env.action_space.n)]], device=device, dtype=torch.long)  # TODO: Do we want this to 'know' death moves?
 
 def optimize_model(input_stack, env):
-    if len(memory) < env.config.BATCH_SIZE:
-        return
-    transitions = memory.sample(env.config.BATCH_SIZE)
-    # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
-    # detailed explanation). This converts batch-array of Transitions
-    # to Transition of batch-arrays.
-    batch = Transition(*zip(*transitions))
-
 
     # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
     # columns of actions taken. These are the actions which would've been taken
     # for each batch state according to policy_net
-    state_action_values = policy_net(state_batch).gather(1, action_batch)
-
     action_values = policy_net(input_stack)
 
     # Compute V(s_{t+1}) for all next states.
@@ -122,7 +112,7 @@ def optimize_model(input_stack, env):
     expected_state_action_values = (next_state_values * env.config.GAMMA) + reward_batch
 
     # Compute Huber loss
-    loss = F.smooth_l1_loss(state_action_values, expected_state_action_values.unsqueeze(1))
+    loss = F.smooth_l1_loss(action_values, expected_state_action_values.unsqueeze(1))
 
     # Optimize the model
     optimizer.zero_grad()
