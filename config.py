@@ -38,4 +38,6 @@ class Config():
         self.EPS_DECAY     = 200
         self.TARGET_UPDATE = 10
 
+        self.INPUT_FRAME_NUM   = 4
+
   

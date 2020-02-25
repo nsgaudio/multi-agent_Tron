@@ -23,13 +23,23 @@ Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'
 
 env = EnvTest()
 
-class InputObservation(object):
+class InputStack(object):
     def __init__(self, env):
-        self.
-        
+        self.input_stack = np.zeros((env.board_shape[0], env.board_shape[1], 2 * env.config.INPUT_FRAME_NUM))
+        observation, head_board, _ = env.init_board()
+        print('INITIAL INPUT STACK:')
+        for i in range(2 * env.config.INPUT_FRAME_NUM):
+            if np.mod(i, 2) == 0:
+                self.input_stack[:, :, i] = observation
+                print(self.input_stack[:, :, i])
+            else:
+                self.input_stack[:, :, i] = head_board
+                print(self.input_stack[:, :, i])
+    def update(self, env):
 
-    def sample(self):
-        return np.random.randint(0, high=self.n)
+
+
+        
 
 
 class DQN(nn.Module):
@@ -59,6 +69,12 @@ class DQN(nn.Module):
         x = F.relu(self.bn2(self.conv2(x)))
         x = F.relu(self.bn3(self.conv3(x)))
         return self.head(x.view(x.size(0), -1))
+
+
+input_stack = InputStack(env)
+
+print('input_stack shape:', input_stack.input_stack.shape)
+print('obs shape:', env.observation.shape)
 
 env.reset()
 env.render()
