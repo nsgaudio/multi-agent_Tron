@@ -23,6 +23,25 @@ Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'
 
 env = EnvTest()
 
+class ReplayMemory(object):
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self.memory = []
+        self.position = 0
+
+    def push(self, *args):
+        """Saves a transition."""
+        if len(self.memory) < self.capacity:
+            self.memory.append(None)
+        self.memory[self.position] = Transition(*args)
+        self.position = (self.position + 1) % self.capacity
+
+    def sample(self, batch_size):
+        return random.sample(self.memory, batch_size)
+
+    def __len__(self):
+        return len(self.memory)
+
 class InputStack(object):
     def __init__(self, env):
         self.input_stack = np.zeros((env.board_shape[0], env.board_shape[1], 2 * env.config.INPUT_FRAME_NUM))
@@ -32,6 +51,7 @@ class InputStack(object):
                 self.input_stack[:, :, c] = observation
             else:
                 self.input_stack[:, :, c] = head_board
+
     def update(self, env):
         self.input_stack = np.append(np.expand_dims(env.head_board, axis=-1), self.input_stack, axis=-1)
         self.input_stack = np.append(np.expand_dims(env.observation, axis=-1), self.input_stack, axis=-1)
@@ -55,7 +75,7 @@ class Tron_DQN(nn.Module):
             return (size - (kernel_size - 1) - 1) // stride  + 1
         convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(w)))
         convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(h)))
-        linear_input_size = convw * convh * 32  # TODO
+        linear_input_size = convw * convh * 32
         self.head = nn.Linear(linear_input_size, outputs)
 
     # Called with either one element to determine next action, or a batch
@@ -78,6 +98,7 @@ target_net.load_state_dict(policy_net.state_dict())
 target_net.eval()
 
 optimizer = optim.RMSprop(policy_net.parameters())
+memory = ReplayMemory(env.config.REPLAY_MEMORY_CAP)
 
 # steps_done = 0
 
@@ -99,7 +120,7 @@ def optimize_model(input_stack, env):
     # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
     # columns of actions taken. These are the actions which would've been taken
     # for each batch state according to policy_net
-    action_values = policy_net(input_stack)
+    Q_s = policy_net(input_stack.input_stack)
 
     # Compute V(s_{t+1}) for all next states.
     # Expected values of actions for non_final_next_states are computed based
