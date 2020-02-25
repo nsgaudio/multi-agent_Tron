@@ -213,16 +213,6 @@ for i_episode in range(num_episodes):
         next_state, reward, done, _ = env.step(action.item())
         reward = torch.tensor([reward], device=device)
 
-        # Observe new state
-        if done:
-            next_state = None
-
-        # Store the transition in memory
-        memory.push(state, action, next_state, reward)
-
-        # Move to the next state
-        state = next_state
-
         # Perform one step of the optimization (on the target network)
         optimize_model()
         if done:

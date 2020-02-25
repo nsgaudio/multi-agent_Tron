@@ -43,4 +43,6 @@ class Config():
         self.KERNEL_SIZE     = 5
         self.STRIDE          = 2
 
+        self.NUM_EPISODES    = 50
+
   
