@@ -7,7 +7,7 @@ class Config():
 
         # init
         self.board_shape     = [10, 10] # y, x
-        self.num_players     = 3
+        self.num_players     = 2
         
         # snake dynamics
         self.init_len        = 5

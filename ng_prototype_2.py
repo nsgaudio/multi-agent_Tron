@@ -25,5 +25,11 @@ for i in range(100):
     print(random.randrange(4))
 
 
+board = np.array([[0, 0, 0],
+                  [0, 2, 1],
+                  [0, 0, 0]])
 
-    
+x = np.argwhere(board==1)
+
+print(x)
+
