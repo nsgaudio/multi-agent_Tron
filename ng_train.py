@@ -40,23 +40,22 @@ class InputStack(object):
 
 
 class Tron_DQN(nn.Module):
-
-    def __init__(self, h, w, outputs):
+    def __init__(self, h, w, outputs, env):
         super(Tron_DQN, self).__init__()
-        self.conv1 = nn.Conv2d(3, 16, kernel_size=5, stride=2)
+        self.conv1 = nn.Conv2d(3, 16, kernel_size=env.KERNEL_SIZE, stride=self.STRIDE)
         self.bn1 = nn.BatchNorm2d(16)
-        self.conv2 = nn.Conv2d(16, 32, kernel_size=5, stride=2)
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=env.KERNEL_SIZE, stride=self.STRIDE)
         self.bn2 = nn.BatchNorm2d(32)
-        self.conv3 = nn.Conv2d(32, 32, kernel_size=5, stride=2)
+        self.conv3 = nn.Conv2d(32, 32, kernel_size=env.KERNEL_SIZE, stride=self.STRIDE)
         self.bn3 = nn.BatchNorm2d(32)
 
         # Number of Linear input connections depends on output of conv2d layers
         # and therefore the input image size, so compute it.
-        def conv2d_size_out(size, kernel_size = 5, stride = 2):
+        def conv2d_size_out(size, kernel_size=env.KERNEL_SIZE, stride=self.STRIDE):
             return (size - (kernel_size - 1) - 1) // stride  + 1
         convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(w)))
         convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(h)))
-        linear_input_size = convw * convh * 32
+        linear_input_size = convw * convh * 32  # TODO
         self.head = nn.Linear(linear_input_size, outputs)
 
     # Called with either one element to determine next action, or a batch
@@ -73,23 +72,19 @@ env.render()
 input_stack = InputStack(env)
 # input_stack.update(env)
 
-policy_net = Tron_DQN(h=env.board_shape[0], w=env.board_shape[1], outputs=env.action_space.n).to(device)
-target_net = Tron_DQN(h=env.board_shape[0], w=env.board_shape[1], outputs=env.action_space.n).to(device)
+policy_net = Tron_DQN(h=env.board_shape[0], w=env.board_shape[1], outputs=env.action_space.n, env=env).to(device)
+target_net = Tron_DQN(h=env.board_shape[0], w=env.board_shape[1], outputs=env.action_space.n, env=env).to(device)
 target_net.load_state_dict(policy_net.state_dict())
 target_net.eval()
 
 optimizer = optim.RMSprop(policy_net.parameters())
 
+# steps_done = 0
 
-steps_done = 0
-
-
-def select_action(state):
-    global steps_done
+def select_action(input_stack, env):
     sample = random.random()
-    eps_threshold = env.config.EPS_END + (env.config.EPS_START - env.config.EPS_END) * \
-        math.exp(-1. * steps_done / env.config.EPS_DECAY)
-    steps_done += 1
+    eps_threshold = env.config.EPS_END + (env.config.EPS_START - env.config.EPS_END) * np.exp(-1. * env.num_iters / env.config.EPS_DECAY)
+    env.num_iters += 1
     if sample > eps_threshold:
         with torch.no_grad():
             # t.max(1) will return largest column value of each row.
@@ -97,7 +92,7 @@ def select_action(state):
             # found, so we pick action with the larger expected reward.
             return policy_net(state).max(1)[1].view(1, 1)
     else:
-        return torch.tensor([[random.randrange(n_actions)]], device=device, dtype=torch.long)
+        return torch.tensor([[random.randrange(env.action_space.n)]], device=device, dtype=torch.long)  # TODO: Do we want this to 'know' death moves?
 
 
 episode_durations = []
