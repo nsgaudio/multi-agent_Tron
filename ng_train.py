@@ -14,11 +14,10 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torchvision.transforms as T
 
-from fu_tron_env_v2 import ActionSpace, EnvTest
+from fu_tron_env_v2 import ActionSpace, EnvTest, hard_codes_policy
 from config import *
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 
 env = EnvTest()
@@ -43,7 +42,7 @@ class ReplayMemory(object):
         return len(self.memory)
 
 class InputStack(object):
-    def __init__(self, env):
+    def __init__(self, env):  # TODO
         self.input_stack = np.zeros((env.board_shape[0], env.board_shape[1], 2 * env.config.INPUT_FRAME_NUM))
         observation, head_board, _ = env.init_board()
         for c in range(2 * env.config.INPUT_FRAME_NUM):
@@ -58,20 +57,19 @@ class InputStack(object):
         self.input_stack = np.delete(self.input_stack, -1, axis=-1)
         self.input_stack = np.delete(self.input_stack, -1, axis=-1)
 
-
 class Tron_DQN(nn.Module):
     def __init__(self, h, w, outputs, env):
         super(Tron_DQN, self).__init__()
-        self.conv1 = nn.Conv2d(3, 16, kernel_size=env.KERNEL_SIZE, stride=self.STRIDE)
+        self.conv1 = nn.Conv2d(3, 16, kernel_size=env.config.KERNEL_SIZE, stride=env.config.STRIDE)
         self.bn1 = nn.BatchNorm2d(16)
-        self.conv2 = nn.Conv2d(16, 32, kernel_size=env.KERNEL_SIZE, stride=self.STRIDE)
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=env.config.KERNEL_SIZE, stride=env.config.STRIDE)
         self.bn2 = nn.BatchNorm2d(32)
-        self.conv3 = nn.Conv2d(32, 32, kernel_size=env.KERNEL_SIZE, stride=self.STRIDE)
+        self.conv3 = nn.Conv2d(32, 32, kernel_size=env.config.KERNEL_SIZE, stride=env.config.STRIDE)
         self.bn3 = nn.BatchNorm2d(32)
 
         # Number of Linear input connections depends on output of conv2d layers
         # and therefore the input image size, so compute it.
-        def conv2d_size_out(size, kernel_size=env.KERNEL_SIZE, stride=self.STRIDE):
+        def conv2d_size_out(size, kernel_size=env.config.KERNEL_SIZE, stride=env.config.STRIDE):
             return (size - (kernel_size - 1) - 1) // stride  + 1
         convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(w)))
         convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(h)))
@@ -116,11 +114,27 @@ def select_action(input_stack, env):
         return torch.tensor([[random.randrange(env.action_space.n)]], device=device, dtype=torch.long)  # TODO: Do we want this to 'know' death moves?
 
 def optimize_model(input_stack, env):
+    if len(memory) < env.config.BATCH_SIZE:
+        return
+    transitions = memory.sample(env.config.BATCH_SIZE)
+    # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
+    # detailed explanation). This converts batch-array of Transitions
+    # to Transition of batch-arrays.
+    batch = Transition(*zip(*transitions))
+
+    # Compute a mask of non-final states and concatenate the batch elements
+    # (a final state would've been the one after which simulation ended)
+    non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
+                                          batch.next_state)), device=device, dtype=torch.bool)
+    non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
+    state_batch = torch.cat(batch.state)
+    action_batch = torch.cat(batch.action)
+    reward_batch = torch.cat(batch.reward)
 
     # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
     # columns of actions taken. These are the actions which would've been taken
     # for each batch state according to policy_net
-    Q_s = policy_net(input_stack.input_stack)
+    state_action_values = policy_net(state_batch).gather(1, action_batch)
 
     # Compute V(s_{t+1}) for all next states.
     # Expected values of actions for non_final_next_states are computed based
@@ -133,7 +147,7 @@ def optimize_model(input_stack, env):
     expected_state_action_values = (next_state_values * env.config.GAMMA) + reward_batch
 
     # Compute Huber loss
-    loss = F.smooth_l1_loss(action_values, expected_state_action_values.unsqueeze(1))
+    loss = F.smooth_l1_loss(state_action_values, expected_state_action_values.unsqueeze(1))
 
     # Optimize the model
     optimizer.zero_grad()
@@ -146,20 +160,21 @@ for e in range(env.config.NUM_EPISODES):
     # Initialize the environment and state
     env.reset()
     input_stack.__init__(env)
-
+    prev_hard_coded_a = 3  # players init to up
     while True:
         # Select and perform an action
         action = select_action(input_stack, env)
-        next_observation, reward, done, dictionary = env.step(action.item())
-        next_head_board = dictionary['head_board']
 
+        print('SEEEEEEEEEEE', np.argwhere(env.head_board==2)[0])
+        hard_coded_a = hard_codes_policy(env.observation, np.argwhere(env.head_board==2)[0], prev_hard_coded_a, env.config.board_shape,  env.action_space)
+        prev_hard_coded_a = hard_coded_a
+        next_observation, reward, done, dictionary = env.step([action.item(), hard_coded_a ])
         reward = torch.tensor([reward], device=device)
 
         input_stack.update(env)
 
         # Perform one step of the optimization (on the target network)
         optimize_model(input_stack, env)
-
         if done:
             break
     # Update the target network, copying all weights and biases in Tron_DQN
