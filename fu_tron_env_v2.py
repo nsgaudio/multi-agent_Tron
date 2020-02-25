@@ -222,7 +222,7 @@ def hard_codes_policy(ob, head, a, board_shape,  A_space):
         except ValueError:
             selected = forward
         
-    return A.dir4_to_a(vector(selected[0], selected[1]) - head)
+    return A_space.dir4_to_a(vector(selected[0], selected[1]) - head)
 
 if __name__ == '__main__':
 
