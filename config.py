@@ -19,23 +19,23 @@ class Config():
         self.cmap           = colors.ListedColormap(self.colors[: self.num_players + 1])
         self.delay          = 0.25 
         # other
-        self.filename      = None
+        self.filename       = None
 
         # reward
-        self.win = 1.0
-        self.loss = -1.0
-        self.time_reward = 0.001
+        self.win           = 1.0
+        self.loss          = -1.0
+        self.time_reward   = 0.001
         ##############################
 
         ########## Q learning config #########
-        self.time_steps     = 1000
+        self.time_steps    = 1000
 
         ######## Training parameters #########
-        self.BATCH_SIZE = 128
-        self.GAMMA = 0.999
-        self.EPS_START = 0.9
-        self.EPS_END = 0.05
-        self.EPS_DECAY = 200
+        self.BATCH_SIZE    = 128
+        self.GAMMA         = 0.999
+        self.EPS_START     = 0.9
+        self.EPS_END       = 0.05
+        self.EPS_DECAY     = 200
         self.TARGET_UPDATE = 10
 
   
