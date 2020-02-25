@@ -53,8 +53,13 @@ class EnvTest(object):
         self.lengthen_every = self.config.lengthen_every
         
         """
+            observation: board, shape = board_shape
+                         Ex. 2 players
+                         [ 0 0 0 0 0 ]
+            head_board : board
             snakes: a list of deque with len = num_players
                     deque = [(tail_vector), (), ...., (head_vector)] : positions of body
+
         """
         self.observation, self.head_board, self.snakes = self.init_board()
 
@@ -185,7 +190,7 @@ class EnvTest(object):
         # else:
         print(self.observation)
 
-def hard_codes_policy(ob, head, a, board_shape,  A_space):
+def hard_coded_policy(ob, head, a, board_shape,  A_space):
     """
         head = np.array [y, x]
     """
