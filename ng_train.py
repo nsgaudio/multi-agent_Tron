@@ -95,27 +95,6 @@ def select_action(input_stack, env):
         return torch.tensor([[random.randrange(env.action_space.n)]], device=device, dtype=torch.long)  # TODO: Do we want this to 'know' death moves?
 
 
-episode_durations = []
-
-
-def plot_durations():
-    plt.figure(2)
-    plt.clf()
-    durations_t = torch.tensor(episode_durations, dtype=torch.float)
-    plt.title('Training...')
-    plt.xlabel('Episode')
-    plt.ylabel('Duration')
-    plt.plot(durations_t.numpy())
-    # Take 100 episode averages and plot them too
-    if len(durations_t) >= 100:
-        means = durations_t.unfold(0, 100, 1).mean(1).view(-1)
-        means = torch.cat((torch.zeros(99), means))
-        plt.plot(means.numpy())
-
-    plt.pause(0.001)  # pause a bit so that plots are updated
-    if is_ipython:
-        display.clear_output(wait=True)
-        display.display(plt.gcf())
 
 def optimize_model():
     if len(memory) < env.config.BATCH_SIZE:
@@ -174,8 +153,6 @@ for i_episode in range(num_episodes):
         if done:
             next_state = None
 
-        # Store the transition in memory
-        memory.push(state, action, next_state, reward)
 
         # Move to the next state
         state = next_state
@@ -183,8 +160,6 @@ for i_episode in range(num_episodes):
         # Perform one step of the optimization (on the target network)
         optimize_model()
         if done:
-            episode_durations.append(t + 1)
-            plot_durations()
             break
     # Update the target network, copying all weights and biases in Tron_DQN
     if i_episode % env.config.TARGET_UPDATE == 0:
