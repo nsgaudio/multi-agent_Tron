@@ -175,7 +175,7 @@ for e in range(env.config.NUM_EPISODES):
     # Initialize the environment and state
     env.reset()
     input_stack.__init__(env)
-    prev_hard_coded_a = 3  # players init to up
+    prev_hard_coded_a = 1  # players init to up
     print('Starting episode:', e)
     while True:
         # Select and perform an action
