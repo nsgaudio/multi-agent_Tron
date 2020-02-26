@@ -97,7 +97,7 @@ class EnvTest(object):
         for i in range(self.num_players):
             # init each snake with length init_len
             x = int( (i+1) * self.board_shape[1] / (self.num_players+1) )
-            init_vecs = [vector(x, y) for y in range(mid_height, mid_height - self.init_len, -1)]
+            init_vecs = [vector(x, y) for y in range(mid_height - self.init_len + 1, mid_height + 1)]
             snakes.append(deque(init_vecs))
 
             for vec in init_vecs:
@@ -264,11 +264,11 @@ if __name__ == '__main__':
 
     env = EnvTest()
     A = env.action_space
-    a1, a2, a3 = (1, 1, 1)
+    a1, a2, a3 = (3, 3, 3)
     while(True):
         env.render()
         hb = env.head_board
-        # print(hb)
+        print(hb)
         a1 = hard_coded_policy(env.observation, np.argwhere(hb == 1)[0], a1, env.board_shape, A, eps=env.config.hcp_eps)
         a2 = hard_coded_policy(env.observation, np.argwhere(hb == 2)[0], a2, env.board_shape, A, eps=env.config.hcp_eps)
         a3 = hard_coded_policy(env.observation, np.argwhere(hb == 3)[0], a3, env.board_shape, A, eps=env.config.hcp_eps)
