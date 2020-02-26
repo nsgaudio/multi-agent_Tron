@@ -181,7 +181,7 @@ for e in range(env.config.NUM_EPISODES):
         # Select and perform an action
         action = select_action(input_stack, env)
 
-        hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board==2)[0], prev_hard_coded_a, env.config.board_shape,  env.action_space)
+        hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board==2)[0], prev_hard_coded_a, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
         prev_hard_coded_a = hard_coded_a
         next_observation, reward, done, dictionary = env.step([action.item(), hard_coded_a ])
         reward = torch.tensor([reward], device=device)

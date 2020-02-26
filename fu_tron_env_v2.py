@@ -214,7 +214,7 @@ class EnvTest(object):
         # else:
         print(self.observation)
 
-def hard_coded_policy(ob, head, a, board_shape,  A_space):
+def hard_coded_policy(ob, head, a, board_shape,  A_space, eps=0.5):
     """
         head = np.array [y, x]
     """
@@ -229,8 +229,9 @@ def hard_coded_policy(ob, head, a, board_shape,  A_space):
 
     head = vector(head[1], head[0])
     forward = head + A_space.a_to_4dir(a)
+    sample = np.random.random()
 
-    if valid(forward):
+    if valid(forward) and sample > eps:
         selected = forward
     else:
         possible = []

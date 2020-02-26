@@ -26,6 +26,10 @@ class Config():
         self.loss            = -1.0
         self.time_reward     = 0.001
         self.win_type        = 'all'
+
+        ##############################
+        # hard-coded policy
+        self.hcp_eps         = 0.5
         ##############################
 
         ########## Q learning config #########
