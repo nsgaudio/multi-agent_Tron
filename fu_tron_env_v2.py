@@ -150,7 +150,7 @@ class EnvTest(object):
         
         done = False
         win = np.ones(self.num_players, dtype=bool)
-        rewards = None
+        rewards = np.zeros_like(self.num_players)
 
         # take away the tail        
         if not (self.num_iters % self.lengthen_every == 0):
@@ -170,7 +170,6 @@ class EnvTest(object):
 
             if not self.inside(tmp_head):
                 win[i] = 0
-                # rewards[i] += self.config.loss
                 done = True
                 print("player {} outside of board".format(i+1))
             
@@ -180,8 +179,6 @@ class EnvTest(object):
                 # TODO: assign something else to the win array
                 # if win_type is 'one'
 
-                # rewards[i] += self.config.loss
-                # rewards[j - 1] += self.config.win
                 done = True
                 print("{} in {}'s body".format(i+1,j))
 
@@ -193,8 +190,7 @@ class EnvTest(object):
             for j in range(i+1, self.num_players):
                 if not checked[j] and head == new_heads[j]:
                     checked[j] = True
-                    # rewards[i] += self.config.loss
-                    # rewards[j] += self.config.loss
+  
                     win[i] = 0
                     win[j] = 0
                     done = True
@@ -209,7 +205,6 @@ class EnvTest(object):
         else:
             rewards = self.compute_rewards(win)
             
-
         return self.observation, rewards, done, {'num_iters':self.num_iters, 'head_board':self.head_board}
 
 
@@ -234,7 +229,6 @@ def hard_coded_policy(ob, head, a, board_shape,  A_space):
 
     head = vector(head[1], head[0])
     forward = head + A_space.a_to_4dir(a)
-    # print(head, a, forward)
 
     if valid(forward):
         selected = forward
@@ -261,7 +255,7 @@ def hard_coded_policy(ob, head, a, board_shape,  A_space):
 if __name__ == '__main__':
 
     env = EnvTest()
-    A = ActionSpace(4)
+    A = env.action_space
     a1, a2, a3 = (1, 1, 1)
     while(True):
         env.render()
