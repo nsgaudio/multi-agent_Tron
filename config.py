@@ -25,6 +25,7 @@ class Config():
         self.win             = 1.0
         self.loss            = -1.0
         self.time_reward     = 0.001
+        self.win_type        = 'all'
         ##############################
 
         ########## Q learning config #########
@@ -45,5 +46,3 @@ class Config():
         self.STRIDE            = 2
 
         self.NUM_EPISODES      = 50
-
-  

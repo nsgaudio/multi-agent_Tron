@@ -125,6 +125,15 @@ class EnvTest(object):
                 self.head_board[self.snakes[i][-1].y, self.snakes[i][-1].x] = i + 1
             except IndexError:
                 print("IndexError: {}".format(self.snakes[i][-1]))
+    def compute_rewards(self, win):
+        rewards = np.zeros(self.num_players, dtype=float)
+
+        rewards[np.nonzero(win)] = self.config.win
+        rewards[np.nonzero(np.invert(win))] = self.config.loss
+
+        rewards += self.config.time_reward * self.num_iters
+
+        return rewards
 
     def reset(self):
         self.num_iters = 0
@@ -138,31 +147,44 @@ class EnvTest(object):
         """
         self.num_iters += 1
         new_heads = [] # (y, x)
-        rewards = np.zeros(self.num_players)
+        
         done = False
+        win = np.ones(self.num_players, dtype=bool)
+        rewards = None
 
-        # use action to update tmp head
-        # check collision from tmp head to snakes
+        # take away the tail        
+        if not (self.num_iters % self.lengthen_every == 0):
+            for i in range(self.num_players):
+                pos = self.snakes[i].popleft()
+                self.observation[pos.y, pos.x] = 0
+
+        # use action to update tmp_head
+        # check collision for tmp_head with snakes
         for i in range(self.num_players):
-            assert(actions[i] in {0,1,2,3})
-            current_head = self.snakes[i][-1]
 
+            assert(actions[i] in {0,1,2,3})
+
+            current_head = self.snakes[i][-1]
             tmp_head = current_head + self.action_space.a_to_4dir(actions[i])
             new_heads.append(tmp_head)
 
             if not self.inside(tmp_head):
-                rewards[i] += self.config.loss
+                win[i] = 0
+                # rewards[i] += self.config.loss
                 done = True
                 print("player {} outside of board".format(i+1))
             
             j = self.observation[tmp_head.y, tmp_head.x]
             if j != 0:
-                rewards[i] += self.config.loss
-                rewards[j - 1] += self.config.win
+                win[i] = 0
+                # TODO: assign something else to the win array
+                # if win_type is 'one'
+
+                # rewards[i] += self.config.loss
+                # rewards[j - 1] += self.config.win
                 done = True
                 print("{} in {}'s body".format(i+1,j))
 
-                    
         
         # check collision within new_heads
         checked = np.zeros(self.num_players, dtype=bool)
@@ -171,25 +193,22 @@ class EnvTest(object):
             for j in range(i+1, self.num_players):
                 if not checked[j] and head == new_heads[j]:
                     checked[j] = True
-                    rewards[i] += self.config.loss
-                    rewards[j] += self.config.loss
+                    # rewards[i] += self.config.loss
+                    # rewards[j] += self.config.loss
+                    win[i] = 0
+                    win[j] = 0
                     done = True
                     print("{} and {} bump into each other".format(i+1,j+1))
+        
 
-        # update tmp head to snakes
-        # TODO: do we need to update deque if done? will deque be used?
-        for i, head in enumerate(new_heads):
-            self.snakes[i].append(head)
-            if not (self.num_iters % self.lengthen_every == 0):
-                pos = self.snakes[i].popleft()
-                self.observation[pos.y, pos.x] = 0
-
-
-        # update observation
+        # update observation and tmp_head to snakes
         if not done:
+            for i, head in enumerate(new_heads):
+                self.snakes[i].append(head)
             self.update_observation()
         else:
-            rewards += self.config.time_reward * self.num_iters
+            rewards = self.compute_rewards(win)
+            
 
         return self.observation, rewards, done, {'num_iters':self.num_iters, 'head_board':self.head_board}
 
@@ -247,11 +266,12 @@ if __name__ == '__main__':
     while(True):
         env.render()
         hb = env.head_board
+        # print(hb)
         a1 = hard_coded_policy(env.observation, np.argwhere(hb == 1)[0], a1, env.board_shape, A)
         a2 = hard_coded_policy(env.observation, np.argwhere(hb == 2)[0], a2, env.board_shape, A)
         a3 = hard_coded_policy(env.observation, np.argwhere(hb == 3)[0], a3, env.board_shape, A)
 
-        ob, r, done, info = env.step([a1,a2,a3])
+        ob, r, done, info = env.step([a1,a2, a3])
         
         if done:
             print("iter: {}, rewards: {}".format(info['num_iters'], r))
