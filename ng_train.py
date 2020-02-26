@@ -60,7 +60,7 @@ class InputStack(object):
 class Tron_DQN(nn.Module):
     def __init__(self, h, w, outputs, env):
         super(Tron_DQN, self).__init__()
-        self.conv1 = nn.Conv2d(2*env.config.INPUT_FRAME_NUM, 16, kernel_size=env.config.KERNEL_SIZE, stride=env.config.STRIDE)
+        self.conv1 = nn.Conv2d(in_channels=2*env.config.INPUT_FRAME_NUM, out_channels=16, kernel_size=env.config.KERNEL_SIZE, stride=env.config.STRIDE)
         self.bn1 = nn.BatchNorm2d(16)
         self.conv2 = nn.Conv2d(16, 32, kernel_size=env.config.KERNEL_SIZE, stride=env.config.STRIDE)
         self.bn2 = nn.BatchNorm2d(32)
@@ -79,7 +79,10 @@ class Tron_DQN(nn.Module):
     # Called with either one element to determine next action, or a batch
     # during optimization. Returns tensor([[left0exp,right0exp]...]).
     def forward(self, x):
-        x = F.relu(self.bn1(self.conv1(x)))
+        # x = F.relu(self.bn1(self.conv1(x)))
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = F.relu(x)
         x = F.relu(self.bn2(self.conv2(x)))
         x = F.relu(self.bn3(self.conv3(x)))
         return self.head(x.view(x.size(0), -1))
@@ -92,6 +95,10 @@ input_stack = InputStack(env)
 
 policy_net = Tron_DQN(h=env.board_shape[0], w=env.board_shape[1], outputs=env.action_space.n, env=env).to(device)
 target_net = Tron_DQN(h=env.board_shape[0], w=env.board_shape[1], outputs=env.action_space.n, env=env).to(device)
+
+policy_net = policy_net.double()
+target_net = target_net.double()
+
 target_net.load_state_dict(policy_net.state_dict())
 target_net.eval()
 
@@ -109,9 +116,9 @@ def select_action(input_stack, env):
             # t.max(1) will return largest column value of each row.
             # second column on max result is index of where max element was
             # found, so we pick action with the larger expected reward.
-            input_tensor = torch.tensor(input_stack.input_stack, device=device)
+            input_tensor = torch.tensor(input_stack.input_stack, device=device).unsqueeze(0)
             # return policy_net(input_stack.input_stack).max(1)[1].view(1, 1)
-            return policy_net(input_tensor).max(1)[1].view(1, 1)
+            return policy_net(input_tensor.permute(0, 3, 1, 2)).max(1)[1].view(1, 1)
     else:
         return torch.tensor([[random.randrange(env.action_space.n)]], device=device, dtype=torch.long)  # TODO: Do we want this to 'know' death moves?
 
@@ -128,7 +135,13 @@ def optimize_model(input_stack, env):
     # (a final state would've been the one after which simulation ended)
     non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
                                           batch.next_state)), device=device, dtype=torch.bool)
-    non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
+    # non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
+    # state_batch = torch.cat(batch.state)
+    # action_batch = torch.cat(batch.action)
+    # reward_batch = torch.cat(batch.reward)
+
+    non_final_next_states = torch.cat([torch.tensor(s, device=device) for s in batch.next_state if s is not None])
+    # torch.tensor(input_stack.input_stack, device=device)
     state_batch = torch.cat(batch.state)
     action_batch = torch.cat(batch.action)
     reward_batch = torch.cat(batch.reward)
@@ -136,17 +149,17 @@ def optimize_model(input_stack, env):
     # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
     # columns of actions taken. These are the actions which would've been taken
     # for each batch state according to policy_net
-    state_action_values = policy_net(state_batch).gather(1, action_batch)
+    state_action_values = policy_net(state_batch.permute(0, 3, 1, 2)).gather(1, action_batch)
 
     # Compute V(s_{t+1}) for all next states.
     # Expected values of actions for non_final_next_states are computed based
     # on the "older" target_net; selecting their best reward with max(1)[0].
     # This is merged based on the mask, such that we'll have either the expected
     # state value or 0 in case the state was final.
-    next_state_values = torch.zeros(env.config.BATCH_SIZE, device=device)
-    next_state_values[non_final_mask] = target_net(non_final_next_states).max(1)[0].detach()
+    next_state_values = torch.zeros(env.config.BATCH_SIZE, device=device).double()
+    next_state_values[non_final_mask] = target_net(non_final_next_states.permute(0, 3, 1, 2)).max(1)[0].detach()
     # Compute the expected Q values
-    expected_state_action_values = (next_state_values * env.config.GAMMA) + reward_batch
+    expected_state_action_values = (next_state_values * env.config.GAMMA) + reward_batch[:, 0]
 
     # Compute Huber loss
     loss = F.smooth_l1_loss(state_action_values, expected_state_action_values.unsqueeze(1))
@@ -163,6 +176,7 @@ for e in range(env.config.NUM_EPISODES):
     env.reset()
     input_stack.__init__(env)
     prev_hard_coded_a = 3  # players init to up
+    print('Starting episode:', e)
     while True:
         # Select and perform an action
         action = select_action(input_stack, env)
@@ -181,12 +195,14 @@ for e in range(env.config.NUM_EPISODES):
         next_state = input_stack.input_stack
 
         # Store the transition in memory
-        memory.push(state, action, next_state, reward)
+        # memory.push(torch.tensor(state, action, next_state, reward)
+        memory.push(torch.tensor(state, device=device).unsqueeze(0), torch.tensor(action, device=device), torch.tensor(next_state, device=device).unsqueeze(0), torch.tensor(reward, device=device))
 
         # Perform one step of the optimization (on the target network)
         optimize_model(input_stack, env)
         if done:
             break
+        env.render()
     # Update the target network, copying all weights and biases in Tron_DQN
     if e % env.config.TARGET_UPDATE == 0:
         target_net.load_state_dict(policy_net.state_dict())
