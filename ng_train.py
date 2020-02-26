@@ -14,7 +14,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torchvision.transforms as T
 
-from fu_tron_env_v2 import ActionSpace, EnvTest, hard_codes_policy
+from fu_tron_env_v2 import ActionSpace, EnvTest, hard_coded_policy
 from config import *
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -43,7 +43,7 @@ class ReplayMemory(object):
 
 class InputStack(object):
     def __init__(self, env):  # TODO
-        self.input_stack = np.zeros((env.board_shape[0], env.board_shape[1], 2 * env.config.INPUT_FRAME_NUM))
+        self.input_stack = np.zeros((env.board_shape[0], env.board_shape[1], 2*env.config.INPUT_FRAME_NUM))
         observation, head_board, _ = env.init_board()
         for c in range(2 * env.config.INPUT_FRAME_NUM):
             if np.mod(c, 2) == 0:
@@ -60,7 +60,7 @@ class InputStack(object):
 class Tron_DQN(nn.Module):
     def __init__(self, h, w, outputs, env):
         super(Tron_DQN, self).__init__()
-        self.conv1 = nn.Conv2d(3, 16, kernel_size=env.config.KERNEL_SIZE, stride=env.config.STRIDE)
+        self.conv1 = nn.Conv2d(2*env.config.INPUT_FRAME_NUM, 16, kernel_size=env.config.KERNEL_SIZE, stride=env.config.STRIDE)
         self.bn1 = nn.BatchNorm2d(16)
         self.conv2 = nn.Conv2d(16, 32, kernel_size=env.config.KERNEL_SIZE, stride=env.config.STRIDE)
         self.bn2 = nn.BatchNorm2d(32)
@@ -109,7 +109,9 @@ def select_action(input_stack, env):
             # t.max(1) will return largest column value of each row.
             # second column on max result is index of where max element was
             # found, so we pick action with the larger expected reward.
-            return policy_net(input_stack.input_stack).max(1)[1].view(1, 1)
+            input_tensor = torch.tensor(input_stack.input_stack, device=device)
+            # return policy_net(input_stack.input_stack).max(1)[1].view(1, 1)
+            return policy_net(input_tensor).max(1)[1].view(1, 1)
     else:
         return torch.tensor([[random.randrange(env.action_space.n)]], device=device, dtype=torch.long)  # TODO: Do we want this to 'know' death moves?
 
@@ -165,13 +167,21 @@ for e in range(env.config.NUM_EPISODES):
         # Select and perform an action
         action = select_action(input_stack, env)
 
-        print('SEEEEEEEEEEE', np.argwhere(env.head_board==2)[0])
-        hard_coded_a = hard_codes_policy(env.observation, np.argwhere(env.head_board==2)[0], prev_hard_coded_a, env.config.board_shape,  env.action_space)
+        hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board==2)[0], prev_hard_coded_a, env.config.board_shape,  env.action_space)
         prev_hard_coded_a = hard_coded_a
         next_observation, reward, done, dictionary = env.step([action.item(), hard_coded_a ])
         reward = torch.tensor([reward], device=device)
 
+        # Observe new state
+        if done:
+            next_state = None
+
+        state = input_stack.input_stack
         input_stack.update(env)
+        next_state = input_stack.input_stack
+
+        # Store the transition in memory
+        memory.push(state, action, next_state, reward)
 
         # Perform one step of the optimization (on the target network)
         optimize_model(input_stack, env)
