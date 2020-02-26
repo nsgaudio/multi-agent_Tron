@@ -150,7 +150,7 @@ class EnvTest(object):
         
         done = False
         win = np.ones(self.num_players, dtype=bool)
-        rewards = np.zeros_like(self.num_players)
+        rewards = np.zeros(self.num_players)
 
         # take away the tail        
         if not (self.num_iters % self.lengthen_every == 0):
@@ -263,9 +263,9 @@ if __name__ == '__main__':
         # print(hb)
         a1 = hard_coded_policy(env.observation, np.argwhere(hb == 1)[0], a1, env.board_shape, A)
         a2 = hard_coded_policy(env.observation, np.argwhere(hb == 2)[0], a2, env.board_shape, A)
-        a3 = hard_coded_policy(env.observation, np.argwhere(hb == 3)[0], a3, env.board_shape, A)
+        # a3 = hard_coded_policy(env.observation, np.argwhere(hb == 3)[0], a3, env.board_shape, A)
 
-        ob, r, done, info = env.step([a1,a2, a3])
+        ob, r, done, info = env.step([a1,a2])
         
         if done:
             print("iter: {}, rewards: {}".format(info['num_iters'], r))
