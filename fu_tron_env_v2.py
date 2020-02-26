@@ -10,6 +10,12 @@ from matplotlib import colors
 
 class ActionSpace(object):
     def __init__(self, n):
+        """
+        action == 0 : (x, y) += (1,  0) right
+               == 1 : (x, y) += (0, -1) down
+               == 2 : (x, y) += (-1, 0) left
+               == 3 : (x, y) += (0,  1) up
+        """
         self.n = n
 
     def sample(self):
@@ -55,8 +61,18 @@ class EnvTest(object):
         """
             observation: board, shape = board_shape
                          Ex. 2 players
-                         [ 0 0 0 0 0 ]
-            head_board : board
+                         [ 0 0 0 0 0 
+                           0 1 0 0 0
+                           0 1 0 2 2
+                           0 0 0 0 0 ]
+
+            head_board : board, shape = board_shape
+                        Ex. 2 players
+                         [ 0 0 0 0 0 
+                           0 1 0 0 0
+                           0 0 0 0 2
+                           0 0 0 0 0 ]
+
             snakes: a list of deque with len = num_players
                     deque = [(tail_vector), (), ...., (head_vector)] : positions of body
 
@@ -92,22 +108,20 @@ class EnvTest(object):
         return ob, head_board, snakes
     
     def inside(self, head):
-        "Return True if head inside screen."
+        "Return True if head inside board."
         return 0 <= head[1] < self.board_shape[1] and 0 <= head[0] < self.board_shape[0]
 
     def update_observation(self):
         """
-            add head to body, do nothing if head exceeds the board
+            1. add head to body
+            2. update head_board
+            do nothing if new head exceeds the board
         """
         self.head_board = np.zeros_like(self.observation)
 
         for i in range(self.num_players):
             try:
                 self.observation[self.snakes[i][-1].y, self.snakes[i][-1].x] = i + 1
-            except IndexError:
-                print("IndexError: {}".format(self.snakes[i][-1]))
-
-            try:
                 self.head_board[self.snakes[i][-1].y, self.snakes[i][-1].x] = i + 1
             except IndexError:
                 print("IndexError: {}".format(self.snakes[i][-1]))
@@ -119,11 +133,8 @@ class EnvTest(object):
     def step(self, actions):
         """
             update observation, rewards base on actions
-            actions: a list of action, len(actions) is num_players
-            action == 0 : (x, y) += (1,  0) right
-                   == 1 : (x, y) += (0, -1) down
-                   == 2 : (x, y) += (-1, 0) left
-                   == 3 : (x, y) += (0,  1) up
+            actions: a list of action, len(actions) == num_players
+            
         """
         self.num_iters += 1
         new_heads = [] # (y, x)
@@ -151,7 +162,6 @@ class EnvTest(object):
                 done = True
                 print("{} in {}'s body".format(i+1,j))
 
-                # if tmp_head in self.snakes[j]:
                     
         
         # check collision within new_heads
@@ -237,9 +247,9 @@ if __name__ == '__main__':
     while(True):
         env.render()
         hb = env.head_board
-        a1 = hard_codes_policy(env.observation, np.argwhere(hb == 1)[0], a1, env.board_shape, A)
-        a2 = hard_codes_policy(env.observation, np.argwhere(hb == 2)[0], a2, env.board_shape, A)
-        a3 = hard_codes_policy(env.observation, np.argwhere(hb == 3)[0], a3, env.board_shape, A)
+        a1 = hard_coded_policy(env.observation, np.argwhere(hb == 1)[0], a1, env.board_shape, A)
+        a2 = hard_coded_policy(env.observation, np.argwhere(hb == 2)[0], a2, env.board_shape, A)
+        a3 = hard_coded_policy(env.observation, np.argwhere(hb == 3)[0], a3, env.board_shape, A)
 
         ob, r, done, info = env.step([a1,a2,a3])
         
