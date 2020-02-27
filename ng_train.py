@@ -79,10 +79,7 @@ class Tron_DQN(nn.Module):
     # Called with either one element to determine next action, or a batch
     # during optimization. Returns tensor([[left0exp,right0exp]...]).
     def forward(self, x):
-        # x = F.relu(self.bn1(self.conv1(x)))
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = F.relu(x)
+        x = F.relu(self.bn1(self.conv1(x)))
         x = F.relu(self.bn2(self.conv2(x)))
         x = F.relu(self.bn3(self.conv3(x)))
         return self.head(x.view(x.size(0), -1))
@@ -117,8 +114,17 @@ def select_action(input_stack, env):
             # second column on max result is index of where max element was
             # found, so we pick action with the larger expected reward.
             input_tensor = torch.tensor(input_stack.input_stack, device=device).unsqueeze(0)
-            # return policy_net(input_stack.input_stack).max(1)[1].view(1, 1)
-            return policy_net(input_tensor.permute(0, 3, 1, 2)).max(1)[1].view(1, 1)
+            # return policy_net(input_tensor.permute(0, 3, 1, 2)).max(1)[1].view(1, 1)
+
+            output = policy_net(input_tensor.permute(0, 3, 1, 2))
+            print('I WANNA SEE THIS', output)
+            output = output.max(1)
+            print('I WANNA SEE THIS', output)
+            output = output[1]
+            print('I WANNA SEE THIS', output)
+            output = output.view(1, 1)
+            print('I WANNA SEE THIS', output)
+            return output
     else:
         return torch.tensor([[random.randrange(env.action_space.n)]], device=device, dtype=torch.long)  # TODO: Do we want this to 'know' death moves?
 
