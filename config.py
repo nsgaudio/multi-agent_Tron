@@ -23,8 +23,7 @@ class Config():
 
         # reward
         self.win             = 1.0
-        self.lose            = -1.0
-        self.tie             = 0.0
+        self.loss            = -1.0
         self.time_reward     = 0.001
         self.win_type        = 'all'
 
