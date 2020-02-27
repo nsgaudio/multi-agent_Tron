@@ -97,7 +97,7 @@ class EnvTest(object):
         for i in range(self.num_players):
             # init each snake with length init_len
             x = int( (i+1) * self.board_shape[1] / (self.num_players+1) )
-            init_vecs = [vector(x, y) for y in range(mid_height, mid_height - self.init_len, -1)]
+            init_vecs = [vector(x, y) for y in range(mid_height - self.init_len + 1, mid_height + 1)]
             snakes.append(deque(init_vecs))
 
             for vec in init_vecs:
@@ -125,11 +125,17 @@ class EnvTest(object):
                 self.head_board[self.snakes[i][-1].y, self.snakes[i][-1].x] = i + 1
             except IndexError:
                 print("IndexError: {}".format(self.snakes[i][-1]))
-    def compute_rewards(self, win):
+    def compute_rewards(self, status):
+        """
+            lose : 0
+            win  : 1
+            tie  : 2
+        """
         rewards = np.zeros(self.num_players, dtype=float)
 
-        rewards[np.nonzero(win)] = self.config.win
-        rewards[np.nonzero(np.invert(win))] = self.config.loss
+        rewards[np.nonzero(status == 1)] = self.config.win
+        rewards[np.nonzero(status == 0)] = self.config.lose 
+        rewards[np.nonzero(status == 2)] = self.config.tie
 
         rewards += self.config.time_reward * self.num_iters
 
@@ -149,7 +155,7 @@ class EnvTest(object):
         new_heads = [] # (y, x)
         
         done = False
-        win = np.ones(self.num_players, dtype=bool)
+        status = np.ones(self.num_players, dtype=int) # initialize to all win
         rewards = np.zeros(self.num_players)
 
         # take away the tail        
@@ -169,13 +175,14 @@ class EnvTest(object):
             new_heads.append(tmp_head)
 
             if not self.inside(tmp_head):
-                win[i] = 0
+                status[i] = 0
                 done = True
                 print("player {} outside of board".format(i+1))
-            
+                continue
+
             j = self.observation[tmp_head.y, tmp_head.x]
             if j != 0:
-                win[i] = 0
+                status[i] = 0
                 # TODO: assign something else to the win array
                 # if win_type is 'one'
 
@@ -191,8 +198,8 @@ class EnvTest(object):
                 if not checked[j] and head == new_heads[j]:
                     checked[j] = True
   
-                    win[i] = 0
-                    win[j] = 0
+                    status[i] = 0
+                    status[j] = 0
                     done = True
                     print("{} and {} bump into each other".format(i+1,j+1))
         
@@ -203,7 +210,7 @@ class EnvTest(object):
                 self.snakes[i].append(head)
             self.update_observation()
         else:
-            rewards = self.compute_rewards(win)
+            rewards = self.compute_rewards(status)
             
         return self.observation, rewards, done, {'num_iters':self.num_iters, 'head_board':self.head_board}
 
@@ -257,16 +264,16 @@ if __name__ == '__main__':
 
     env = EnvTest()
     A = env.action_space
-    a1, a2, a3 = (1, 1, 1)
+    a1, a2, a3 = (3, 3, 3)
     while(True):
         env.render()
         hb = env.head_board
-        # print(hb)
-        a1 = hard_coded_policy(env.observation, np.argwhere(hb == 1)[0], a1, env.board_shape, A)
-        a2 = hard_coded_policy(env.observation, np.argwhere(hb == 2)[0], a2, env.board_shape, A)
-        # a3 = hard_coded_policy(env.observation, np.argwhere(hb == 3)[0], a3, env.board_shape, A)
+        print(hb)
+        a1 = hard_coded_policy(env.observation, np.argwhere(hb == 1)[0], a1, env.board_shape, A, eps=env.config.hcp_eps)
+        a2 = hard_coded_policy(env.observation, np.argwhere(hb == 2)[0], a2, env.board_shape, A, eps=env.config.hcp_eps)
+        a3 = hard_coded_policy(env.observation, np.argwhere(hb == 3)[0], a3, env.board_shape, A, eps=env.config.hcp_eps)
 
-        ob, r, done, info = env.step([a1,a2])
+        ob, r, done, info = env.step([a1,a2, a3])
         
         if done:
             print("iter: {}, rewards: {}".format(info['num_iters'], r))
