@@ -6,8 +6,8 @@ class Config():
         ########## Env config #########
 
         # init
-        self.board_shape     = [64, 64] # y, x
-        self.num_players     = 2
+        self.board_shape     = [10, 10] # y, x
+        self.num_players     = 3
         
         # snake dynamics
         self.init_len        = 5
