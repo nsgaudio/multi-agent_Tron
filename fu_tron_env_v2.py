@@ -135,7 +135,7 @@ class EnvTest(object):
 
         rewards[np.nonzero(status == 1)] = self.config.win
         rewards[np.nonzero(status == 0)] = self.config.lose 
-        rewards[np.nonzero(status == 2)] = self.config.tie
+        # rewards[np.nonzero(status == 2)] = self.config.tie
 
         rewards += self.config.time_reward * self.num_iters
 
