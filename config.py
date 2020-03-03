@@ -7,11 +7,11 @@ class Config():
 
         # init
         self.board_shape     = [40, 40] # y, x
-        self.num_players     = 2
+        self.num_players     = 4
         
         # snake dynamics
         self.init_len        = 5
-        self.lengthen_every  = 2
+        self.lengthen_every  = 1
 
         # Visualization
         self.show            = True
@@ -26,6 +26,10 @@ class Config():
         self.lose            = -1.0
         self.time_reward     = 0.001
         self.win_type        = 'all'
+
+        # team
+        self.teams = np.array([[1,2], [3,4]])
+        self.indep_Q = False
 
         ##############################
         # hard-coded policy

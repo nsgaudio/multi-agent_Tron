@@ -12,9 +12,9 @@ class ActionSpace(object):
     def __init__(self, n):
         """
         action == 0 : (x, y) += (1,  0) right in Cartisian coordinate
-               == 1 : (x, y) += (0, -1) down in Cartisian coordinate
-               == 2 : (x, y) += (-1, 0) left in Cartisian coordinate
-               == 3 : (x, y) += (0,  1) up in Cartisian coordinate
+               == 1 : (x, y) += (0, -1) down  in Cartisian coordinate
+               == 2 : (x, y) += (-1, 0) left  in Cartisian coordinate
+               == 3 : (x, y) += (0,  1) up    in Cartisian coordinate
         """
         self.n = n
 
@@ -221,6 +221,123 @@ class EnvTest(object):
         # else:
         # print(self.observation)
 
+class EnvTeam(EnvTest):
+    def __init__(self):
+        super().__init__()
+        self.teams  = self.config.teams
+    
+    def get_team_ids(self, i):
+        """
+            input : i = 0 --> player 1 on board
+            output: team_ids = [0, 1] --> index in list
+        """
+        team_ids = None
+
+        if (i+1) in self.teams[0]:
+            team_ids = self.teams[0] - 1
+        elif (i+1) in self.teams[1]:
+            team_ids = self.teams[1] - 1
+        else:
+            raise ValueError("player id: {} not defined in config".format(i))
+
+        return team_ids
+    
+    def switch_id(self, i, j):
+        """
+            input i = 1 --> player 1 on board
+        """
+        tmp_val = -1
+        ob2 = self.observation.copy()
+        head2 = self.head_board.copy()
+
+        ob2[ob2 == i] = tmp_val
+        ob2[ob2 == j] = i
+        ob2[ob2 == tmp_val] = j
+
+        head2[head2 == i] = tmp_val
+        head2[head2 == j] = i
+        head2[head2 == tmp_val] = j
+
+        return ob2, head2
+
+    def step(self, actions):
+        """
+            update observation, rewards base on actions
+            actions: a list of action, len(actions) == num_players
+            
+        """
+        self.num_iters += 1
+        new_heads = [] # (y, x)
+        
+        done = False
+        status = np.ones(self.num_players, dtype=int) # initialize to all win
+        rewards = np.zeros(self.num_players)
+
+        # take away the tail        
+        if not (self.num_iters % self.lengthen_every == 0):
+            for i in range(self.num_players):
+                pos = self.snakes[i].popleft()
+                self.observation[pos.y, pos.x] = 0
+
+        # use action to update tmp_head
+        # check collision for tmp_head with snakes
+        for i in range(self.num_players):
+
+            assert(actions[i] in {0,1,2,3})
+
+            current_head = self.snakes[i][-1]
+            tmp_head = current_head + self.action_space.a_to_4dir(actions[i])
+            new_heads.append(tmp_head)
+
+            team_ids = self.get_team_ids(i)
+
+            if not self.inside(tmp_head):
+                status[team_ids] = 0
+                done = True
+                print("player {} outside of board".format(i+1))
+                continue
+
+            j = self.observation[tmp_head.y, tmp_head.x]
+            if j != 0:
+                status[team_ids] = 0
+                # TODO: assign something else to the win array
+                # if win_type is 'one'
+
+                done = True
+                print("{} in {}'s body".format(i+1,j))
+
+        
+        # check collision within new_heads
+        checked = np.zeros(self.num_players, dtype=bool)
+        for i, head in enumerate(new_heads):
+            checked[i] = True
+            for j in range(i+1, self.num_players):
+                if not checked[j] and head == new_heads[j]:
+                    checked[j] = True
+
+                    status[self.get_team_ids(i)] = 0
+                    status[self.get_team_ids(j)] = 0
+                    done = True
+                    print("{} and {} bump into each other".format(i+1,j+1))
+        
+
+        # update observation and tmp_head to snakes
+        ob2 = None
+        head2 = None
+        if not done:
+            for i, head in enumerate(new_heads):
+                self.snakes[i].append(head)
+            self.update_observation()
+
+            if self.config.indep_Q:
+                ob2, head2 = self.switch_id(1,2)
+        else:
+            rewards = self.compute_rewards(status)
+            
+        return self.observation, rewards, done, {'num_iters':self.num_iters, 'head_board':self.head_board, 
+                                                 'ob2': ob2, 'head2':head2}
+
+
 def hard_coded_policy(ob, head, a, board_shape,  A_space, eps=0.5):
     """
         head = np.array [y, x]
@@ -260,20 +377,22 @@ def hard_coded_policy(ob, head, a, board_shape,  A_space, eps=0.5):
         
     return A_space.dir4_to_a(vector(selected[0], selected[1]) - head)
 
+
 if __name__ == '__main__':
 
-    env = EnvTest()
+    env = EnvTeam()
     A = env.action_space
-    a1, a2, a3 = (3, 3, 3)
+    a1, a2, a3, a4 = (3, 3, 3, 3)
     while(True):
         env.render()
         hb = env.head_board
-        print(hb)
+        # print(hb)
         a1 = hard_coded_policy(env.observation, np.argwhere(hb == 1)[0], a1, env.board_shape, A, eps=env.config.hcp_eps)
         a2 = hard_coded_policy(env.observation, np.argwhere(hb == 2)[0], a2, env.board_shape, A, eps=env.config.hcp_eps)
         a3 = hard_coded_policy(env.observation, np.argwhere(hb == 3)[0], a3, env.board_shape, A, eps=env.config.hcp_eps)
+        a4 = hard_coded_policy(env.observation, np.argwhere(hb == 4)[0], a4, env.board_shape, A, eps=env.config.hcp_eps)
 
-        ob, r, done, info = env.step([a1,a2, a3])
+        ob, r, done, info = env.step([a1,a2, a3, a4])
         
         if done:
             print("iter: {}, rewards: {}".format(info['num_iters'], r))
