@@ -201,6 +201,9 @@ def optimize_model(input_stack, env):
     # Compute the expected Q values
     expected_state_action_values = (next_state_values * env.config.GAMMA) + reward_batch[:, 0]
 
+
+    print('shape 1', state_action_values)
+    print('state 2', expected_state_action_values)
     # Compute Huber loss
     loss = F.smooth_l1_loss(state_action_values, expected_state_action_values.unsqueeze(1))
 
