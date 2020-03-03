@@ -10,10 +10,11 @@ import os
 from matplotlib import pyplot as plt
 from matplotlib import animation
 
-def show_board(board, cmap, delay=0.025, filename=None):
+def show_board(board, head, cmap, delay=0.025, filename=None):
     '''Makes a plot of the game board.'''
     
     plt.pcolor(board, cmap=cmap, edgecolors='k', linewidths=1)
+    plt.pcolor(head, cmap='binary', edgecolors='k', linewidths=1, alpha=0.5)
     
     plt.draw()
     plt.pause(delay)
