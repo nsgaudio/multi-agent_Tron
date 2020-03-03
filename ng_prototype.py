@@ -172,7 +172,32 @@ def optimize_model(input_stack, env):
     # This is merged based on the mask, such that we'll have either the expected
     # state value or 0 in case the state was final.
     next_state_values = torch.zeros(env.config.BATCH_SIZE, device=device).double()
-    next_state_values[non_final_mask] = target_net(non_final_next_states).max(1)[0].detach()
+
+    output = target_net(non_final_next_states)
+    def batch_valid_actions(player_num, non_final_next_states, env):
+        def valid(pos, obs):
+            if pos[0] >= env.board_shape[0] or pos[0] < 0:
+                return False
+            if pos[1]>= env.board_shape[1] or pos[1] < 0:
+                return False
+            if obs[pos[0], pos[1]] != 0:
+                return False
+            return True
+        bvs = np.zeros((env.config.BATCH_SIZE, env.action_space.n))
+        for b in range(env.config.BATCH_SIZE):
+            head = np.argwhere(non_final_next_states[b, 1, :, :]==player_num).squeeze()
+            bvs[b, :] = [valid([head[0], head[1]+1], non_final_next_states[b, 0, :, :]), 
+                         valid([head[0]-1, head[1]], non_final_next_states[b, 0, :, :]), 
+                         valid([head[0], head[1]-1], non_final_next_states[b, 0, :, :]), 
+                         valid([head[0]+1, head[1]], non_final_next_states[b, 0, :, :])]
+        return np.array(bvs)
+    valid_actions = batch_valid_actions(player_num=1, non_final_next_states=non_final_next_states, env=env)
+
+    adjustement = 500000 * (valid_actions - 1)
+    output = output + torch.Tensor(adjustement, device=device)
+    next_state_values[non_final_mask] = output.max(1)[0].detach()
+    # next_state_values[non_final_mask] = target_net(non_final_next_states).max(1)[0].detach()
+
     # Compute the expected Q values
     expected_state_action_values = (next_state_values * env.config.GAMMA) + reward_batch[:, 0]
 
@@ -198,7 +223,7 @@ for e in range(env.config.NUM_EPISODES):
 
         hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board==2)[0], prev_hard_coded_a, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
         prev_hard_coded_a = hard_coded_a
-        next_observation, reward, done, dictionary = env.step([action.item(), hard_coded_a ])
+        next_observation, reward, done, dictionary = env.step([action.item(), hard_coded_a])
         reward = torch.tensor([reward], device=device)
 
         # Observe new state
@@ -213,6 +238,7 @@ for e in range(env.config.NUM_EPISODES):
         # memory.push(torch.tensor(state, action, next_state, reward)
         memory.push(torch.tensor(state, device=device).unsqueeze(0), torch.tensor(action, device=device), torch.tensor(next_state, device=device).unsqueeze(0), torch.tensor(reward, device=device))
 
+        # print('THIS HAPPENS')
         # Perform one step of the optimization (on the target network)
         optimize_model(input_stack, env)
         if done:
