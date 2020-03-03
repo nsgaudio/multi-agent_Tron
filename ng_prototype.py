@@ -59,7 +59,6 @@ class InputStack(object):
     
     def valid_actions(self, player_num):
         head = np.argwhere(env.head_board==player_num).squeeze()
-        print('THIS IS THE HEAD', head)
         def valid(pos):
             if pos[0] >= env.board_shape[0] or pos[0] < 0:
                 return False
@@ -115,8 +114,6 @@ target_net.eval()
 optimizer = optim.RMSprop(policy_net.parameters())
 memory = ReplayMemory(env.config.REPLAY_MEMORY_CAP)
 
-# steps_done = 0
-
 def select_action(input_stack, env):
     sample = random.random()
     eps_threshold = env.config.EPS_END + (env.config.EPS_START - env.config.EPS_END) * np.exp(-1. * env.num_iters / env.config.EPS_DECAY)
@@ -127,43 +124,17 @@ def select_action(input_stack, env):
             # second column on max result is index of where max element was
             # found, so we pick action with the larger expected reward.
             input_tensor = torch.tensor(input_stack.input_stack, device=device).unsqueeze(0)
-            # return policy_net(input_tensor.permute(0, 3, 1, 2)).max(1)[1].view(1, 1)
-
-            # print('THIS IS THE SHAPE', input_tensor.shape)
-
             output = policy_net(input_tensor)
-            print('Output values', output)
             valid_actions = np.array(input_stack.valid_actions(player_num=1))
-            print('Valid actions', valid_actions)
-            adjustement = 50000 * (valid_actions - 1)
-            print('Adjustment', adjustement)
+            adjustement = 500000 * (valid_actions - 1)
             output += adjustement
-            print('Adjusted output', output)
-            # print('I WANNA SEE THIS', output)
-            output = output.max(1)
-            # print('I WANNA SEE THIS', output)
-            output = output[1]
-            # print('I WANNA SEE THIS', output)
-            output = output.view(1, 1)
-            print('I WANNA SEE THIS', output)
-            print('**************THIS HAPPENED***************')
+            output = output.max(1)[1].view(1, 1)
             return output
     else:
-        print('*****************************')
         valid_actions = np.array(input_stack.valid_actions(player_num=1))
-        print('Valid actions', valid_actions)
         valid_ind = np.argwhere(valid_actions==1)
-        # valid_ind = list(valid_ind.squeeze())
-        # valid_ind = valid_ind.squeeze()
-        print('Args', valid_ind)
-
-        # index = np.random.choice(valid_ind.shape[0], 1, replace=False)
-        print('Length', len(valid_ind))
         index = np.random.choice(valid_ind.shape[0], 1, replace=False)
         valid_action = valid_ind[index]
-        print('Selected valid action', valid_action)
-        print('*****************************')
-        # return torch.tensor([[random.randrange(env.action_space.n)]], device=device, dtype=torch.long)
         return torch.tensor(valid_action, device=device, dtype=torch.long)
 
 def optimize_model(input_stack, env):
