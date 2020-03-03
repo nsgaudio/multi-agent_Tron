@@ -28,8 +28,13 @@ class Config():
         self.win_type        = 'all'
 
         # team
-        self.teams = np.array([[1,2], [3,4]])
+        self.teams = np.array([[1,2], [3,4]]) 
+            # Ex. input of env.step(actions), actions = [a1, a2, a3, a4], a in {0,1,2,3}
+            # a1, a2 are actions in the same team; a3, a4 are actions in the other team
+            # assume a1, a2 are from agent(s), a3, a4 are from computer
         self.indep_Q = False
+            # False: 1 agent controls 2 players
+            # True : 1 agent controls 1 players, a total of 2 agents
 
         ##############################
         # hard-coded policy
