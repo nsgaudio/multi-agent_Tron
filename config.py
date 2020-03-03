@@ -37,7 +37,7 @@ class Config():
 
         ######## Training parameters #########
         self.REPLAY_MEMORY_CAP = 10000
-        self.BATCH_SIZE        = 128
+        self.BATCH_SIZE        = 6
         self.GAMMA             = 0.999
         self.EPS_START         = 0.9
         self.EPS_END           = 0.05

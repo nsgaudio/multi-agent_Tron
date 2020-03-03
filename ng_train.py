@@ -43,23 +43,22 @@ class ReplayMemory(object):
 
 class InputStack(object):
     def __init__(self, env):  # TODO
-        self.input_stack = np.zeros((env.board_shape[0], env.board_shape[1], 2*env.config.INPUT_FRAME_NUM))
+        self.input_stack = np.zeros((2*env.config.INPUT_FRAME_NUM, env.board_shape[0], env.board_shape[1]))
         observation, head_board, _ = env.init_board()
         for c in range(2 * env.config.INPUT_FRAME_NUM):
             if np.mod(c, 2) == 0:
-                self.input_stack[:, :, c] = observation
+                self.input_stack[c, :, :] = observation
             else:
-                self.input_stack[:, :, c] = head_board
+                self.input_stack[c, :, :] = head_board
 
     def update(self, env):
-        self.input_stack = np.append(np.expand_dims(env.head_board, axis=-1), self.input_stack, axis=-1)
-        self.input_stack = np.append(np.expand_dims(env.observation, axis=-1), self.input_stack, axis=-1)
-        self.input_stack = np.delete(self.input_stack, -1, axis=-1)
-        self.input_stack = np.delete(self.input_stack, -1, axis=-1)
+        self.input_stack = np.append(np.expand_dims(env.head_board, axis=0), self.input_stack, axis=0)
+        self.input_stack = np.append(np.expand_dims(env.observation, axis=0), self.input_stack, axis=0)
+        self.input_stack = np.delete(self.input_stack, -1, axis=0)
+        self.input_stack = np.delete(self.input_stack, -1, axis=0)
     
     def valid_actions(self, player_num):
         head = np.argwhere(env.head_board==player_num).squeeze()
-        print('THIS IS THE HEAD', head)
         def valid(pos):
             if pos[0] >= env.board_shape[0] or pos[0] < 0:
                 return False
@@ -68,7 +67,7 @@ class InputStack(object):
             if env.observation[pos[0], pos[1]] != 0:
                 return False
             return True
-        return [valid([head[0]+1, head[1]]), valid([head[0], head[1]-1]), valid([head[0]-1, head[1]]), valid([head[0], head[1]+1])]
+        return [valid([head[0], head[1]+1]), valid([head[0]-1, head[1]]), valid([head[0], head[1]-1]), valid([head[0]+1, head[1]])]
 
 class Tron_DQN(nn.Module):
     def __init__(self, h, w, outputs, env):
@@ -115,8 +114,6 @@ target_net.eval()
 optimizer = optim.RMSprop(policy_net.parameters())
 memory = ReplayMemory(env.config.REPLAY_MEMORY_CAP)
 
-# steps_done = 0
-
 def select_action(input_stack, env):
     sample = random.random()
     eps_threshold = env.config.EPS_END + (env.config.EPS_START - env.config.EPS_END) * np.exp(-1. * env.num_iters / env.config.EPS_DECAY)
@@ -127,22 +124,18 @@ def select_action(input_stack, env):
             # second column on max result is index of where max element was
             # found, so we pick action with the larger expected reward.
             input_tensor = torch.tensor(input_stack.input_stack, device=device).unsqueeze(0)
-            # return policy_net(input_tensor.permute(0, 3, 1, 2)).max(1)[1].view(1, 1)
-
-            output = policy_net(input_tensor.permute(0, 3, 1, 2))
-
-            val = input_stack.valid_actions(player_num=1)
-            print('WHATTTTTTT', val)
-            print('I WANNA SEE THIS', output)
-            output = output.max(1)
-            print('I WANNA SEE THIS', output)
-            output = output[1]
-            print('I WANNA SEE THIS', output)
-            output = output.view(1, 1)
-            print('I WANNA SEE THIS', output)
+            output = policy_net(input_tensor)
+            valid_actions = np.array(input_stack.valid_actions(player_num=1))
+            adjustement = 500000 * (valid_actions - 1)
+            output += adjustement
+            output = output.max(1)[1].view(1, 1)
             return output
     else:
-        return torch.tensor([[random.randrange(env.action_space.n)]], device=device, dtype=torch.long)  # TODO: Do we want this to 'know' death moves?
+        valid_actions = np.array(input_stack.valid_actions(player_num=1))
+        valid_ind = np.argwhere(valid_actions==1)
+        index = np.random.choice(valid_ind.shape[0], 1, replace=False)
+        valid_action = valid_ind[index]
+        return torch.tensor(valid_action, device=device, dtype=torch.long)
 
 def optimize_model(input_stack, env):
     if len(memory) < env.config.BATCH_SIZE:
@@ -171,7 +164,7 @@ def optimize_model(input_stack, env):
     # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
     # columns of actions taken. These are the actions which would've been taken
     # for each batch state according to policy_net
-    state_action_values = policy_net(state_batch.permute(0, 3, 1, 2)).gather(1, action_batch)
+    state_action_values = policy_net(state_batch).gather(1, action_batch)
 
     # Compute V(s_{t+1}) for all next states.
     # Expected values of actions for non_final_next_states are computed based
@@ -179,7 +172,12 @@ def optimize_model(input_stack, env):
     # This is merged based on the mask, such that we'll have either the expected
     # state value or 0 in case the state was final.
     next_state_values = torch.zeros(env.config.BATCH_SIZE, device=device).double()
-    next_state_values[non_final_mask] = target_net(non_final_next_states.permute(0, 3, 1, 2)).max(1)[0].detach()
+
+    # print('What is this', target_net(non_final_next_states).max(1)[0].detach())
+    what = target_net(non_final_next_states)
+    print('What is this', what)
+    print('Lets see this shape', non_final_next_states.shape)
+    next_state_values[non_final_mask] = target_net(non_final_next_states).max(1)[0].detach()
     # Compute the expected Q values
     expected_state_action_values = (next_state_values * env.config.GAMMA) + reward_batch[:, 0]
 
@@ -205,7 +203,7 @@ for e in range(env.config.NUM_EPISODES):
 
         hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board==2)[0], prev_hard_coded_a, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
         prev_hard_coded_a = hard_coded_a
-        next_observation, reward, done, dictionary = env.step([action.item(), hard_coded_a ])
+        next_observation, reward, done, dictionary = env.step([action.item(), hard_coded_a])
         reward = torch.tensor([reward], device=device)
 
         # Observe new state
@@ -220,6 +218,7 @@ for e in range(env.config.NUM_EPISODES):
         # memory.push(torch.tensor(state, action, next_state, reward)
         memory.push(torch.tensor(state, device=device).unsqueeze(0), torch.tensor(action, device=device), torch.tensor(next_state, device=device).unsqueeze(0), torch.tensor(reward, device=device))
 
+        # print('THIS HAPPENS')
         # Perform one step of the optimization (on the target network)
         optimize_model(input_stack, env)
         if done:
