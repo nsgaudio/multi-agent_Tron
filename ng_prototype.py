@@ -146,6 +146,7 @@ def select_action(input_stack, env):
             # print('I WANNA SEE THIS', output)
             output = output.view(1, 1)
             print('I WANNA SEE THIS', output)
+            print('**************THIS HAPPENED***************')
             return output
     else:
         print('*****************************')
