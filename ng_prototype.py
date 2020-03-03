@@ -68,7 +68,7 @@ class InputStack(object):
             if env.observation[pos[0], pos[1]] != 0:
                 return False
             return True
-        return [valid([head[0]+1, head[1]]), valid([head[0], head[1]-1]), valid([head[0]-1, head[1]]), valid([head[0], head[1]+1])]
+        return [valid([head[0], head[1]+1]), valid([head[0]-1, head[1]]), valid([head[0], head[1]-1]), valid([head[0]+1, head[1]])]
 
 class Tron_DQN(nn.Module):
     def __init__(self, h, w, outputs, env):
@@ -154,15 +154,17 @@ def select_action(input_stack, env):
         print('Valid actions', valid_actions)
         valid_ind = np.argwhere(valid_actions==1)
         # valid_ind = list(valid_ind.squeeze())
-        valid_ind = valid_ind.squeeze()
+        # valid_ind = valid_ind.squeeze()
         print('Args', valid_ind)
 
+        # index = np.random.choice(valid_ind.shape[0], 1, replace=False)
+        print('Length', len(valid_ind))
         index = np.random.choice(valid_ind.shape[0], 1, replace=False)
         valid_action = valid_ind[index]
         print('Selected valid action', valid_action)
         print('*****************************')
         # return torch.tensor([[random.randrange(env.action_space.n)]], device=device, dtype=torch.long)
-        return torch.tensor([valid_action], device=device, dtype=torch.long)
+        return torch.tensor(valid_action, device=device, dtype=torch.long)
 
 def optimize_model(input_stack, env):
     if len(memory) < env.config.BATCH_SIZE:
