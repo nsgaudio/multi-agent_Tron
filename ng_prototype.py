@@ -201,9 +201,6 @@ def optimize_model(input_stack, env):
     # Compute the expected Q values
     expected_state_action_values = (next_state_values * env.config.GAMMA) + reward_batch[:, 0]
 
-
-    print('shape 1', state_action_values)
-    print('state 2', expected_state_action_values)
     # Compute Huber loss
     loss = F.smooth_l1_loss(state_action_values, expected_state_action_values.unsqueeze(1))
 
@@ -223,7 +220,6 @@ for e in range(env.config.NUM_EPISODES):
     while True:
         # Select and perform an action
         action = select_action(input_stack, env)
-
         hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board==2)[0], prev_hard_coded_a, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
         prev_hard_coded_a = hard_coded_a
         next_observation, reward, done, dictionary = env.step([action.item(), hard_coded_a])
