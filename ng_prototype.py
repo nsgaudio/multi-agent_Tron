@@ -14,27 +14,15 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torchvision.transforms as T
 
-from fu_tron_env_v2 import ActionSpace, EnvTest
+from fu_tron_env_v2 import ActionSpace, EnvTest, hard_coded_policy
 from config import *
 
-# set up matplotlib
-is_ipython = 'inline' in matplotlib.get_backend()
-if is_ipython:
-    from IPython import display
-
-plt.ion()
-
-# if gpu is to be used
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-Transition = namedtuple('Transition',
-                        ('state', 'action', 'next_state', 'reward'))
+Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 
 env = EnvTest()
 
-
 class ReplayMemory(object):
-
     def __init__(self, capacity):
         self.capacity = capacity
         self.memory = []
@@ -53,20 +41,48 @@ class ReplayMemory(object):
     def __len__(self):
         return len(self.memory)
 
-class DQN(nn.Module):
+class InputStack(object):
+    def __init__(self, env):  # TODO
+        self.input_stack = np.zeros((2*env.config.INPUT_FRAME_NUM, env.board_shape[0], env.board_shape[1]))
+        observation, head_board, _ = env.init_board()
+        for c in range(2 * env.config.INPUT_FRAME_NUM):
+            if np.mod(c, 2) == 0:
+                self.input_stack[c, :, :] = observation
+            else:
+                self.input_stack[c, :, :] = head_board
 
-    def __init__(self, h, w, outputs):
-        super(DQN, self).__init__()
-        self.conv1 = nn.Conv2d(3, 16, kernel_size=5, stride=2)
+    def update(self, env):
+        self.input_stack = np.append(np.expand_dims(env.head_board, axis=0), self.input_stack, axis=0)
+        self.input_stack = np.append(np.expand_dims(env.observation, axis=0), self.input_stack, axis=0)
+        self.input_stack = np.delete(self.input_stack, -1, axis=0)
+        self.input_stack = np.delete(self.input_stack, -1, axis=0)
+    
+    def valid_actions(self, player_num):
+        head = np.argwhere(env.head_board==player_num).squeeze()
+        print('THIS IS THE HEAD', head)
+        def valid(pos):
+            if pos[0] >= env.board_shape[0] or pos[0] < 0:
+                return False
+            if pos[1]>= env.board_shape[1] or pos[1] < 0:
+                return False
+            if env.observation[pos[0], pos[1]] != 0:
+                return False
+            return True
+        return [valid([head[0]+1, head[1]]), valid([head[0], head[1]-1]), valid([head[0]-1, head[1]]), valid([head[0], head[1]+1])]
+
+class Tron_DQN(nn.Module):
+    def __init__(self, h, w, outputs, env):
+        super(Tron_DQN, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels=2*env.config.INPUT_FRAME_NUM, out_channels=16, kernel_size=env.config.KERNEL_SIZE, stride=env.config.STRIDE)
         self.bn1 = nn.BatchNorm2d(16)
-        self.conv2 = nn.Conv2d(16, 32, kernel_size=5, stride=2)
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=env.config.KERNEL_SIZE, stride=env.config.STRIDE)
         self.bn2 = nn.BatchNorm2d(32)
-        self.conv3 = nn.Conv2d(32, 32, kernel_size=5, stride=2)
+        self.conv3 = nn.Conv2d(32, 32, kernel_size=env.config.KERNEL_SIZE, stride=env.config.STRIDE)
         self.bn3 = nn.BatchNorm2d(32)
 
         # Number of Linear input connections depends on output of conv2d layers
         # and therefore the input image size, so compute it.
-        def conv2d_size_out(size, kernel_size = 5, stride = 2):
+        def conv2d_size_out(size, kernel_size=env.config.KERNEL_SIZE, stride=env.config.STRIDE):
             return (size - (kernel_size - 1) - 1) // stride  + 1
         convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(w)))
         convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(h)))
@@ -84,83 +100,70 @@ class DQN(nn.Module):
 env.reset()
 env.render()
 
-# BATCH_SIZE = 128
-# GAMMA = 0.999
-# EPS_START = 0.9
-# EPS_END = 0.05
-# EPS_DECAY = 200
-# TARGET_UPDATE = 10
+input_stack = InputStack(env)
+# input_stack.update(env)
 
-config = Config()  # added
+policy_net = Tron_DQN(h=env.board_shape[0], w=env.board_shape[1], outputs=env.action_space.n, env=env).to(device)
+target_net = Tron_DQN(h=env.board_shape[0], w=env.board_shape[1], outputs=env.action_space.n, env=env).to(device)
 
-# Get screen size so that we can initialize layers correctly based on shape
-# returned from AI gym. Typical dimensions at this point are close to 3x40x90
-# which is the result of a clamped and down-scaled render buffer in get_screen()
-# init_screen = get_screen()  # commented
+policy_net = policy_net.double()
+target_net = target_net.double()
 
-# _, _, screen_height, screen_width = init_screen.shape  # commented
-screen_height = env.board_shape[0]  # added
-screen_width = env.board_shape[1]  # added
-
-# screen_height = 100  # added
-# screen_width = 100  # added
-
-# Get number of actions from gym action space
-n_actions = env.action_space.n
-
-
-print('see:   ', screen_height, screen_width, n_actions)
-policy_net = DQN(screen_height, screen_width, n_actions).to(device)
-target_net = DQN(screen_height, screen_width, n_actions).to(device)
 target_net.load_state_dict(policy_net.state_dict())
 target_net.eval()
 
 optimizer = optim.RMSprop(policy_net.parameters())
-memory = ReplayMemory(10000)
+memory = ReplayMemory(env.config.REPLAY_MEMORY_CAP)
 
+# steps_done = 0
 
-steps_done = 0
-
-
-def select_action(state):
-    global steps_done
+def select_action(input_stack, env):
     sample = random.random()
-    eps_threshold = env.config.EPS_END + (env.config.EPS_START - env.config.EPS_END) * \
-        math.exp(-1. * steps_done / env.config.EPS_DECAY)
-    steps_done += 1
+    eps_threshold = env.config.EPS_END + (env.config.EPS_START - env.config.EPS_END) * np.exp(-1. * env.num_iters / env.config.EPS_DECAY)
+    env.num_iters += 1
     if sample > eps_threshold:
         with torch.no_grad():
             # t.max(1) will return largest column value of each row.
             # second column on max result is index of where max element was
             # found, so we pick action with the larger expected reward.
-            return policy_net(state).max(1)[1].view(1, 1)
+            input_tensor = torch.tensor(input_stack.input_stack, device=device).unsqueeze(0)
+            # return policy_net(input_tensor.permute(0, 3, 1, 2)).max(1)[1].view(1, 1)
+
+            # print('THIS IS THE SHAPE', input_tensor.shape)
+
+            output = policy_net(input_tensor)
+            print('Output values', output)
+            valid_actions = np.array(input_stack.valid_actions(player_num=1))
+            print('Valid actions', valid_actions)
+            adjustement = 50000 * (valid_actions - 1)
+            print('Adjustment', adjustement)
+            output += adjustement
+            print('Adjusted output', output)
+            # print('I WANNA SEE THIS', output)
+            output = output.max(1)
+            # print('I WANNA SEE THIS', output)
+            output = output[1]
+            # print('I WANNA SEE THIS', output)
+            output = output.view(1, 1)
+            print('I WANNA SEE THIS', output)
+            return output
     else:
-        return torch.tensor([[random.randrange(n_actions)]], device=device, dtype=torch.long)
+        print('*****************************')
+        valid_actions = np.array(input_stack.valid_actions(player_num=1))
+        print('Valid actions', valid_actions)
+        valid_ind = np.argwhere(valid_actions==1)
+        # valid_ind = list(valid_ind.squeeze())
+        valid_ind = valid_ind.squeeze()
+        print('Args', valid_ind)
 
+        index = np.random.choice(valid_ind.shape[0], 1, replace=False)
+        valid_action = valid_ind[index]
+        print('Selected valid action', valid_action)
+        print('*****************************')
+        # return torch.tensor([[random.randrange(env.action_space.n)]], device=device, dtype=torch.long)
+        return torch.tensor([valid_action], device=device, dtype=torch.long)
 
-episode_durations = []
-
-
-def plot_durations():
-    plt.figure(2)
-    plt.clf()
-    durations_t = torch.tensor(episode_durations, dtype=torch.float)
-    plt.title('Training...')
-    plt.xlabel('Episode')
-    plt.ylabel('Duration')
-    plt.plot(durations_t.numpy())
-    # Take 100 episode averages and plot them too
-    if len(durations_t) >= 100:
-        means = durations_t.unfold(0, 100, 1).mean(1).view(-1)
-        means = torch.cat((torch.zeros(99), means))
-        plt.plot(means.numpy())
-
-    plt.pause(0.001)  # pause a bit so that plots are updated
-    if is_ipython:
-        display.clear_output(wait=True)
-        display.display(plt.gcf())
-
-def optimize_model():
+def optimize_model(input_stack, env):
     if len(memory) < env.config.BATCH_SIZE:
         return
     transitions = memory.sample(env.config.BATCH_SIZE)
@@ -173,7 +176,13 @@ def optimize_model():
     # (a final state would've been the one after which simulation ended)
     non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
                                           batch.next_state)), device=device, dtype=torch.bool)
-    non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
+    # non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
+    # state_batch = torch.cat(batch.state)
+    # action_batch = torch.cat(batch.action)
+    # reward_batch = torch.cat(batch.reward)
+
+    non_final_next_states = torch.cat([torch.tensor(s, device=device) for s in batch.next_state if s is not None])
+    # torch.tensor(input_stack.input_stack, device=device)
     state_batch = torch.cat(batch.state)
     action_batch = torch.cat(batch.action)
     reward_batch = torch.cat(batch.reward)
@@ -188,10 +197,10 @@ def optimize_model():
     # on the "older" target_net; selecting their best reward with max(1)[0].
     # This is merged based on the mask, such that we'll have either the expected
     # state value or 0 in case the state was final.
-    next_state_values = torch.zeros(env.config.BATCH_SIZE, device=device)
+    next_state_values = torch.zeros(env.config.BATCH_SIZE, device=device).double()
     next_state_values[non_final_mask] = target_net(non_final_next_states).max(1)[0].detach()
     # Compute the expected Q values
-    expected_state_action_values = (next_state_values * env.config.GAMMA) + reward_batch
+    expected_state_action_values = (next_state_values * env.config.GAMMA) + reward_batch[:, 0]
 
     # Compute Huber loss
     loss = F.smooth_l1_loss(state_action_values, expected_state_action_values.unsqueeze(1))
@@ -203,28 +212,42 @@ def optimize_model():
         param.grad.data.clamp_(-1, 1)
     optimizer.step()
 
-num_episodes = 50
-for i_episode in range(num_episodes):
+for e in range(env.config.NUM_EPISODES):
     # Initialize the environment and state
-    state, _ = env.init_board()
-    for t in count():
+    env.reset()
+    input_stack.__init__(env)
+    prev_hard_coded_a = 1  # players init to up
+    print('Starting episode:', e)
+    while True:
         # Select and perform an action
-        action = select_action(state)
-        next_state, reward, done, _ = env.step(action.item())
+        action = select_action(input_stack, env)
+
+        hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board==2)[0], prev_hard_coded_a, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
+        prev_hard_coded_a = hard_coded_a
+        next_observation, reward, done, dictionary = env.step([action.item(), hard_coded_a ])
         reward = torch.tensor([reward], device=device)
 
-        # Perform one step of the optimization (on the target network)
-        optimize_model()
+        # Observe new state
         if done:
-            episode_durations.append(t + 1)
-            plot_durations()
+            next_state = None
+
+        state = input_stack.input_stack
+        input_stack.update(env)
+        next_state = input_stack.input_stack
+
+        # Store the transition in memory
+        # memory.push(torch.tensor(state, action, next_state, reward)
+        memory.push(torch.tensor(state, device=device).unsqueeze(0), torch.tensor(action, device=device), torch.tensor(next_state, device=device).unsqueeze(0), torch.tensor(reward, device=device))
+
+        # Perform one step of the optimization (on the target network)
+        optimize_model(input_stack, env)
+        if done:
             break
-    # Update the target network, copying all weights and biases in DQN
-    if i_episode % env.config.TARGET_UPDATE == 0:
+        env.render()
+    # Update the target network, copying all weights and biases in Tron_DQN
+    if e % env.config.TARGET_UPDATE == 0:
         target_net.load_state_dict(policy_net.state_dict())
 
 print('Complete')
 env.render()
-env.close()
-plt.ioff()
-plt.show()
+# env.close()

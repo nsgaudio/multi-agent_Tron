@@ -219,7 +219,7 @@ class EnvTest(object):
         if self.show:
             show_board(self.observation, self.cmap, delay=self.delay, filename=self.filename)
         # else:
-        print(self.observation)
+        # print(self.observation)
 
 def hard_coded_policy(ob, head, a, board_shape,  A_space, eps=0.5):
     """

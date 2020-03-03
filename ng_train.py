@@ -56,6 +56,19 @@ class InputStack(object):
         self.input_stack = np.append(np.expand_dims(env.observation, axis=-1), self.input_stack, axis=-1)
         self.input_stack = np.delete(self.input_stack, -1, axis=-1)
         self.input_stack = np.delete(self.input_stack, -1, axis=-1)
+    
+    def valid_actions(self, player_num):
+        head = np.argwhere(env.head_board==player_num).squeeze()
+        print('THIS IS THE HEAD', head)
+        def valid(pos):
+            if pos[0] >= env.board_shape[0] or pos[0] < 0:
+                return False
+            if pos[1]>= env.board_shape[1] or pos[1] < 0:
+                return False
+            if env.observation[pos[0], pos[1]] != 0:
+                return False
+            return True
+        return [valid([head[0]+1, head[1]]), valid([head[0], head[1]-1]), valid([head[0]-1, head[1]]), valid([head[0], head[1]+1])]
 
 class Tron_DQN(nn.Module):
     def __init__(self, h, w, outputs, env):
@@ -117,6 +130,9 @@ def select_action(input_stack, env):
             # return policy_net(input_tensor.permute(0, 3, 1, 2)).max(1)[1].view(1, 1)
 
             output = policy_net(input_tensor.permute(0, 3, 1, 2))
+
+            val = input_stack.valid_actions(player_num=1)
+            print('WHATTTTTTT', val)
             print('I WANNA SEE THIS', output)
             output = output.max(1)
             print('I WANNA SEE THIS', output)
