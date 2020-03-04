@@ -77,6 +77,7 @@ def plot(stats_list):
     reward_lower = avg_reward - std_reward
     plt.fill_between(avg_reward, reward_lower, reward_upper, color='grey', alpha=.2,
                      label=r'$\pm$ 1 std. dev.')
+    plt.save('Average Reward')
 
 if __name__ == '__main__':
     policy_net = load_model() #placeholder
