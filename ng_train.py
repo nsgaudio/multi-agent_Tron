@@ -16,7 +16,7 @@ import torchvision.transforms as T
 
 from fu_tron_env_v2 import ActionSpace, EnvTest, hard_coded_policy
 from config import *
-from test import evaluate, plot
+from test import evaluate, plot, test_select_action
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))

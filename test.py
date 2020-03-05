@@ -32,7 +32,7 @@ def evaluate(policy_net):
 
         while True:
             # Select and perform an action
-            action = select_action(policy_net, input_stack, env)
+            action = test_select_action(policy_net, input_stack, env)
 
             hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board==2)[0], prev_hard_coded_a, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
             prev_hard_coded_a = hard_coded_a
@@ -52,7 +52,7 @@ def evaluate(policy_net):
 
     return stats
 
-def select_action(policy_net, input_stack, env):
+def test_select_action(policy_net, input_stack, env):
     with torch.no_grad():
         # t.max(1) will return largest column value of each row.
         # second column on max result is index of where max element was
