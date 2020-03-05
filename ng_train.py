@@ -130,7 +130,7 @@ def select_action(input_stack, env):
             output = policy_net(input_tensor)
             valid_actions = np.array(input_stack.valid_actions(player_num=1))
             adjustement = 500000 * (valid_actions - 1)
-            output = output + torch.Tensor(adjustement, device=device)
+            output = output + torch.tensor(adjustement, device=device)
             output = output.max(1)[1].view(1, 1)
             return output
     else:
@@ -192,7 +192,7 @@ def optimize_model(input_stack, env):
             return True
         bvs = np.zeros((env.config.BATCH_SIZE, env.action_space.n))
         for b in range(env.config.BATCH_SIZE):
-            head = np.argwhere(non_final_next_states[b, 1, :, :]==player_num).squeeze()
+            head = np.argwhere(non_final_next_states[b, 1, :, :].cpu().numpy()==player_num).squeeze()
             bvs[b, :] = [valid([head[0], head[1]+1], non_final_next_states[b, 0, :, :]), 
                          valid([head[0]-1, head[1]], non_final_next_states[b, 0, :, :]), 
                          valid([head[0], head[1]-1], non_final_next_states[b, 0, :, :]), 
@@ -201,7 +201,7 @@ def optimize_model(input_stack, env):
     valid_actions = batch_valid_actions(player_num=1, non_final_next_states=non_final_next_states, env=env)
 
     adjustement = 500000 * (valid_actions - 1)
-    output = output + torch.Tensor(adjustement, device=device)
+    output = output + torch.tensor(adjustement, device=device)
     next_state_values[non_final_mask] = output.max(1)[0].detach()
     # next_state_values[non_final_mask] = target_net(non_final_next_states).max(1)[0].detach()
 
@@ -221,7 +221,7 @@ def optimize_model(input_stack, env):
 def evaluate(policy_net):
     total_rewards = []
     win_loss = []
-    for e in range(5): #probably put number of episodes in conifg
+    for e in range(2): #probably put number of episodes in conifg
         # Initialize the environment and state
         env.reset()
         input_stack.__init__(env)
@@ -243,8 +243,6 @@ def evaluate(policy_net):
             if done:
                 win_loss.append(reward)
                 break
-
-            env.render()
         total_rewards.append(np.sum(rewards))
 
     stats = [np.mean(total_rewards), np.std(total_rewards), np.sum(win_loss==1), np.sum(win_loss==-1), np.sum(win_loss==0)]
@@ -260,7 +258,7 @@ def test_select_action(policy_net, input_stack, env):
         output = policy_net(input_tensor)
         valid_actions = np.array(input_stack.valid_actions(player_num=1))
         adjustement = 500000 * (valid_actions - 1)
-        output = output + torch.Tensor(adjustement, device=device)
+        output = output + torch.tensor(adjustement, device=device)
         output = output.max(1)[1].view(1, 1)
         return output
 
@@ -272,10 +270,12 @@ def plot(stats_list):
     num_loss = np.array([stats[3] for stats in stats_list])
     num_ties = np.array([stats[4] for stats in stats_list])
 
-    plt.plot(avg_reward)
+    episode = np.arange(1, len(avg_reward)+1)
+
+    plt.plot(episode, avg_reward)
     reward_upper = avg_reward + std_reward
     reward_lower = avg_reward - std_reward
-    plt.fill_between(avg_reward, reward_lower, reward_upper, color='grey', alpha=.2,
+    plt.fill_between(episode, reward_lower, reward_upper, color='grey', alpha=.2,
                      label=r'$\pm$ 1 std. dev.')
     # plt.save('Average Reward')
     utils.cond_mkdir('./plots/')
