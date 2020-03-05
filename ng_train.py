@@ -134,7 +134,10 @@ def select_action(input_stack, env):
     else:
         valid_actions = np.array(input_stack.valid_actions(player_num=1))
         valid_ind = np.argwhere(valid_actions==1)
-        index = np.random.choice(valid_ind.shape[0], 1, replace=False)
+        if valid_ind.shape[0] != 0:
+            index = np.random.choice(valid_ind.shape[0], 1, replace=False) # there is a valid index
+        else:
+            index = np.random.choice(env.action_space.n, 1, replace=False)  # will die
         valid_action = valid_ind[index]
         return torch.tensor(valid_action, device=device, dtype=torch.long)
 
@@ -249,7 +252,7 @@ for e in range(env.config.NUM_EPISODES):
     # Update the target network, copying all weights and biases in Tron_DQN
     if e % env.config.TARGET_UPDATE == 0:
         target_net.load_state_dict(policy_net.state_dict())
-        stats_list.appent(evaluate(policy_net))
+        stats_list.append(evaluate(policy_net))
 
 print('Complete')
 env.render()

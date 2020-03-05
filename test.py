@@ -80,6 +80,6 @@ def plot(stats_list):
     plt.save('Average Reward')
 
 if __name__ == '__main__':
-    policy_net = load_model() #placeholder
+    policy_net = load_model() # placeholder
     stats = evaluate(policy_net)
     print(stats)
