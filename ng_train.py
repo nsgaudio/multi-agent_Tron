@@ -265,6 +265,7 @@ def test_select_action(policy_net, input_stack, env):
         return output
 
 def plot(stats_list):
+    plt.figure()
     avg_reward = np.array([stats[0] for stats in stats_list])
     std_reward = np.array([stats[1] for stats in stats_list])
     num_wins = np.array([stats[2] for stats in stats_list])
