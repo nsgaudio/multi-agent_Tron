@@ -57,6 +57,7 @@ class EnvTest(object):
         self.num_players = self.config.num_players
         self.init_len = self.config.init_len
         self.lengthen_every = self.config.lengthen_every
+        self.done = False
         
         """
             observation: board, shape = board_shape
@@ -144,6 +145,7 @@ class EnvTest(object):
     def reset(self):
         self.num_iters = 0
         self.observation, self.head_board, self.snakes = self.init_board()
+        self.done = False
                 
     def step(self, actions):
         """
@@ -154,7 +156,6 @@ class EnvTest(object):
         self.num_iters += 1
         new_heads = [] # (y, x)
         
-        done = False
         status = np.ones(self.num_players, dtype=int) # initialize to all win
         rewards = np.zeros(self.num_players)
 
@@ -176,7 +177,7 @@ class EnvTest(object):
 
             if not self.inside(tmp_head):
                 status[i] = 0
-                done = True
+                self.done = True
                 print("player {} outside of board".format(i+1))
                 continue
 
@@ -186,7 +187,7 @@ class EnvTest(object):
                 # TODO: assign something else to the win array
                 # if win_type is 'one'
 
-                done = True
+                self.done = True
                 print("{} in {}'s body".format(i+1,j))
 
         
@@ -200,24 +201,24 @@ class EnvTest(object):
   
                     status[i] = 0
                     status[j] = 0
-                    done = True
+                    self.done = True
                     print("{} and {} bump into each other".format(i+1,j+1))
         
 
         # update observation and tmp_head to snakes
-        if not done:
+        if not self.done:
             for i, head in enumerate(new_heads):
                 self.snakes[i].append(head)
             self.update_observation()
         else:
             rewards = self.compute_rewards(status)
             
-        return self.observation, rewards, done, {'num_iters':self.num_iters, 'head_board':self.head_board}
+        return self.observation, rewards, self.done, {'num_iters':self.num_iters, 'head_board':self.head_board}
 
 
     def render(self):
         if self.show:
-            show_board(self.observation, self.head_board, self.cmap, delay=self.delay, filename=self.filename)
+            show_board(self.observation, self.head_board, self.done, self.cmap, delay=self.delay, filename=self.filename)
         # else:
         # print(self.observation)
 
@@ -269,7 +270,6 @@ class EnvTeam(EnvTest):
         self.num_iters += 1
         new_heads = [] # (y, x)
         
-        done = False
         status = np.ones(self.num_players, dtype=int) # initialize to all win
         rewards = np.zeros(self.num_players)
 
@@ -293,7 +293,7 @@ class EnvTeam(EnvTest):
 
             if not self.inside(tmp_head):
                 status[team_ids] = 0
-                done = True
+                self.done = True
                 print("player {} outside of board".format(i+1))
                 continue
 
@@ -303,7 +303,7 @@ class EnvTeam(EnvTest):
                 # TODO: assign something else to the win array
                 # if win_type is 'one'
 
-                done = True
+                self.done = True
                 print("{} in {}'s body".format(i+1,j))
 
         
@@ -317,14 +317,14 @@ class EnvTeam(EnvTest):
 
                     status[self.get_team_ids(i)] = 0
                     status[self.get_team_ids(j)] = 0
-                    done = True
+                    self.done = True
                     print("{} and {} bump into each other".format(i+1,j+1))
         
 
         # update observation and tmp_head to snakes
         ob2 = None
         head2 = None
-        if not done:
+        if not self.done:
             for i, head in enumerate(new_heads):
                 self.snakes[i].append(head)
             self.update_observation()
@@ -334,7 +334,7 @@ class EnvTeam(EnvTest):
         else:
             rewards = self.compute_rewards(status)
             
-        return self.observation, rewards, done, {'num_iters':self.num_iters, 'head_board':self.head_board, 
+        return self.observation, rewards, self.done, {'num_iters':self.num_iters, 'head_board':self.head_board, 
                                                  'ob2': ob2, 'head2':head2}
 
 
@@ -395,5 +395,6 @@ if __name__ == '__main__':
         ob, r, done, info = env.step([a1,a2, a3, a4])
         
         if done:
+            env.render()
             print("iter: {}, rewards: {}".format(info['num_iters'], r))
             break

@@ -1,5 +1,4 @@
 """Utilities
-
 """
 # pylint: disable=no-member
 
@@ -26,7 +25,6 @@ def show_board(board, head, cmap, delay=0.025, filename=None):
 
     if filename is not None:
         plt.figure.savefig(filename)
-
 
 class vector(collections.Sequence):
     """Two-dimensional vector.
