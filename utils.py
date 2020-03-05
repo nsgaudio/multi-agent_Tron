@@ -10,6 +10,10 @@ import os
 from matplotlib import pyplot as plt
 from matplotlib import animation
 
+def cond_mkdir(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+
 def show_board(board, head, cmap, delay=0.025, filename=None):
     '''Makes a plot of the game board.'''
     
