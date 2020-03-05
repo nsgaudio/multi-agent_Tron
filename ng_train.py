@@ -1,4 +1,5 @@
 # import gym
+import os
 import math
 import random
 import numpy as np
@@ -16,6 +17,8 @@ import torchvision.transforms as T
 
 from fu_tron_env_v2 import ActionSpace, EnvTest, hard_coded_policy
 from config import *
+import utils 
+# from test import evaluate, plot, test_select_action
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
@@ -133,9 +136,13 @@ def select_action(input_stack, env):
     else:
         valid_actions = np.array(input_stack.valid_actions(player_num=1))
         valid_ind = np.argwhere(valid_actions==1)
-        index = np.random.choice(valid_ind.shape[0], 1, replace=False)
-        valid_action = valid_ind[index]
-        return torch.tensor(valid_action, device=device, dtype=torch.long)
+        if valid_ind.shape[0] != 0:
+            index = np.random.choice(valid_ind.shape[0], 1, replace=False) # there is a valid index
+            selected_action = valid_ind[index]
+        else:
+            index = np.random.choice(env.action_space.n, 1, replace=False)  # will die
+            selected_action = np.expand_dims(index, axis=-1)
+        return torch.tensor(selected_action, device=device, dtype=torch.long)
 
 def optimize_model(input_stack, env):
     if len(memory) < env.config.BATCH_SIZE:
@@ -173,11 +180,31 @@ def optimize_model(input_stack, env):
     # state value or 0 in case the state was final.
     next_state_values = torch.zeros(env.config.BATCH_SIZE, device=device).double()
 
-    # print('What is this', target_net(non_final_next_states).max(1)[0].detach())
-    what = target_net(non_final_next_states)
-    print('What is this', what)
-    print('Lets see this shape', non_final_next_states.shape)
-    next_state_values[non_final_mask] = target_net(non_final_next_states).max(1)[0].detach()
+    output = target_net(non_final_next_states)
+    def batch_valid_actions(player_num, non_final_next_states, env):
+        def valid(pos, obs):
+            if pos[0] >= env.board_shape[0] or pos[0] < 0:
+                return False
+            if pos[1]>= env.board_shape[1] or pos[1] < 0:
+                return False
+            if obs[pos[0], pos[1]] != 0:
+                return False
+            return True
+        bvs = np.zeros((env.config.BATCH_SIZE, env.action_space.n))
+        for b in range(env.config.BATCH_SIZE):
+            head = np.argwhere(non_final_next_states[b, 1, :, :]==player_num).squeeze()
+            bvs[b, :] = [valid([head[0], head[1]+1], non_final_next_states[b, 0, :, :]), 
+                         valid([head[0]-1, head[1]], non_final_next_states[b, 0, :, :]), 
+                         valid([head[0], head[1]-1], non_final_next_states[b, 0, :, :]), 
+                         valid([head[0]+1, head[1]], non_final_next_states[b, 0, :, :])]
+        return np.array(bvs)
+    valid_actions = batch_valid_actions(player_num=1, non_final_next_states=non_final_next_states, env=env)
+
+    adjustement = 500000 * (valid_actions - 1)
+    output = output + torch.Tensor(adjustement, device=device)
+    next_state_values[non_final_mask] = output.max(1)[0].detach()
+    # next_state_values[non_final_mask] = target_net(non_final_next_states).max(1)[0].detach()
+
     # Compute the expected Q values
     expected_state_action_values = (next_state_values * env.config.GAMMA) + reward_batch[:, 0]
 
@@ -191,7 +218,72 @@ def optimize_model(input_stack, env):
         param.grad.data.clamp_(-1, 1)
     optimizer.step()
 
-for e in range(env.config.NUM_EPISODES):
+def evaluate(policy_net):
+    total_rewards = []
+    win_loss = []
+    for e in range(1): #probably put number of episodes in conifg
+        # Initialize the environment and state
+        env.reset()
+        input_stack.__init__(env)
+        prev_hard_coded_a = 1  # players init to up
+        print('Starting episode:', e)
+        rewards = []
+
+        while True:
+            # Select and perform an action
+            action = test_select_action(policy_net, input_stack, env)
+
+            hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board==2)[0], prev_hard_coded_a, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
+            prev_hard_coded_a = hard_coded_a
+            next_observation, reward, done, dictionary = env.step([action.item(), hard_coded_a])
+            rewards.append(reward)
+
+            input_stack.update(env)
+
+            if done:
+                win_loss.append(reward)
+                break
+
+            env.render()
+        total_rewards.append(np.sum(rewards))
+
+    stats = [np.mean(total_rewards), np.std(total_rewards), np.sum(win_loss==1), np.sum(win_loss==-1), np.sum(win_loss==0)]
+
+    return stats
+
+def test_select_action(policy_net, input_stack, env):
+    with torch.no_grad():
+        # t.max(1) will return largest column value of each row.
+        # second column on max result is index of where max element was
+        # found, so we pick action with the larger expected reward.
+        input_tensor = torch.tensor(input_stack.input_stack, device=device).unsqueeze(0)
+        output = policy_net(input_tensor)
+        valid_actions = np.array(input_stack.valid_actions(player_num=1))
+        adjustement = 500000 * (valid_actions - 1)
+        output += adjustement
+        output = output.max(1)[1].view(1, 1)
+        return output
+
+def plot(stats_list):
+    plt.figure()
+    avg_reward = np.array([stats[0] for stats in stats_list])
+    std_reward = np.array([stats[1] for stats in stats_list])
+    num_wins = np.array([stats[2] for stats in stats_list])
+    num_loss = np.array([stats[3] for stats in stats_list])
+    num_ties = np.array([stats[4] for stats in stats_list])
+
+    plt.plot(avg_reward)
+    reward_upper = avg_reward + std_reward
+    reward_lower = avg_reward - std_reward
+    plt.fill_between(avg_reward, reward_lower, reward_upper, color='grey', alpha=.2,
+                     label=r'$\pm$ 1 std. dev.')
+    # plt.save('Average Reward')
+    utils.cond_mkdir('./plots/')
+    plt.savefig('./plots/plot')
+
+
+stats_list = []
+for e in range(1, env.config.NUM_EPISODES + 1):
     # Initialize the environment and state
     env.reset()
     input_stack.__init__(env)
@@ -200,7 +292,6 @@ for e in range(env.config.NUM_EPISODES):
     while True:
         # Select and perform an action
         action = select_action(input_stack, env)
-
         hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board==2)[0], prev_hard_coded_a, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
         prev_hard_coded_a = hard_coded_a
         next_observation, reward, done, dictionary = env.step([action.item(), hard_coded_a])
@@ -225,9 +316,16 @@ for e in range(env.config.NUM_EPISODES):
             break
         env.render()
     # Update the target network, copying all weights and biases in Tron_DQN
-    if e % env.config.TARGET_UPDATE == 0:
+    if e % env.config.TARGET_UPDATE_FREQUENCY == 0:
         target_net.load_state_dict(policy_net.state_dict())
+        stats_list.append(evaluate(policy_net))
+
+    if e % env.config.MODEL_SAVE_FREQUENCY == 0:
+        print('Saving model')
+        utils.cond_mkdir('./models/')
+        torch.save(policy_net, os.path.join('./models/', 'episode_%d.pth' % (e)))
 
 print('Complete')
 env.render()
+plot(stats_list)
 # env.close()

@@ -217,7 +217,7 @@ class EnvTest(object):
 
     def render(self):
         if self.show:
-            show_board(self.observation, self.cmap, delay=self.delay, filename=self.filename)
+            show_board(board=self.observation, head=self.head_board , cmap=self.cmap, delay=self.delay, filename=self.filename)
         # else:
         # print(self.observation)
 

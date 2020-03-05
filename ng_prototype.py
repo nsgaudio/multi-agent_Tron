@@ -16,6 +16,7 @@ import torchvision.transforms as T
 
 from fu_tron_env_v2 import ActionSpace, EnvTest, hard_coded_policy
 from config import *
+from test import evaluate, plot
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
@@ -201,9 +202,6 @@ def optimize_model(input_stack, env):
     # Compute the expected Q values
     expected_state_action_values = (next_state_values * env.config.GAMMA) + reward_batch[:, 0]
 
-
-    print('shape 1', state_action_values)
-    print('state 2', expected_state_action_values)
     # Compute Huber loss
     loss = F.smooth_l1_loss(state_action_values, expected_state_action_values.unsqueeze(1))
 
@@ -214,6 +212,8 @@ def optimize_model(input_stack, env):
         param.grad.data.clamp_(-1, 1)
     optimizer.step()
 
+stats_list = []
+
 for e in range(env.config.NUM_EPISODES):
     # Initialize the environment and state
     env.reset()
@@ -223,7 +223,6 @@ for e in range(env.config.NUM_EPISODES):
     while True:
         # Select and perform an action
         action = select_action(input_stack, env)
-
         hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board==2)[0], prev_hard_coded_a, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
         prev_hard_coded_a = hard_coded_a
         next_observation, reward, done, dictionary = env.step([action.item(), hard_coded_a])
@@ -250,7 +249,9 @@ for e in range(env.config.NUM_EPISODES):
     # Update the target network, copying all weights and biases in Tron_DQN
     if e % env.config.TARGET_UPDATE == 0:
         target_net.load_state_dict(policy_net.state_dict())
+        stats_list.appent(evaluate(policy_net))
 
 print('Complete')
 env.render()
+plot(stats_list)
 # env.close()
