@@ -192,7 +192,7 @@ def optimize_model(input_stack, env):
             return True
         bvs = np.zeros((env.config.BATCH_SIZE, env.action_space.n))
         for b in range(env.config.BATCH_SIZE):
-            head = np.argwhere(non_final_next_states[b, 1, :, :].numpy()==player_num).squeeze()
+            head = np.argwhere(non_final_next_states[b, 1, :, :].cpu().numpy()==player_num).squeeze()
             bvs[b, :] = [valid([head[0], head[1]+1], non_final_next_states[b, 0, :, :]), 
                          valid([head[0]-1, head[1]], non_final_next_states[b, 0, :, :]), 
                          valid([head[0], head[1]-1], non_final_next_states[b, 0, :, :]), 
@@ -243,8 +243,6 @@ def evaluate(policy_net):
             if done:
                 win_loss.append(reward)
                 break
-
-            env.render()
         total_rewards.append(np.sum(rewards))
 
     stats = [np.mean(total_rewards), np.std(total_rewards), np.sum(win_loss==1), np.sum(win_loss==-1), np.sum(win_loss==0)]
