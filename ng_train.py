@@ -1,4 +1,5 @@
 # import gym
+import os
 import math
 import random
 import numpy as np
@@ -16,6 +17,7 @@ import torchvision.transforms as T
 
 from fu_tron_env_v2 import ActionSpace, EnvTest, hard_coded_policy
 from config import *
+import utils 
 # from test import evaluate, plot, test_select_action
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -136,10 +138,11 @@ def select_action(input_stack, env):
         valid_ind = np.argwhere(valid_actions==1)
         if valid_ind.shape[0] != 0:
             index = np.random.choice(valid_ind.shape[0], 1, replace=False) # there is a valid index
+            selected_action = valid_ind[index]
         else:
             index = np.random.choice(env.action_space.n, 1, replace=False)  # will die
-        valid_action = valid_ind[index]
-        return torch.tensor(valid_action, device=device, dtype=torch.long)
+            selected_action = np.expand_dims(index, axis=-1)
+        return torch.tensor(selected_action, device=device, dtype=torch.long)
 
 def optimize_model(input_stack, env):
     if len(memory) < env.config.BATCH_SIZE:
@@ -218,7 +221,7 @@ def optimize_model(input_stack, env):
 def evaluate(policy_net):
     total_rewards = []
     win_loss = []
-    for e in range(5): #probably put number of episodes in conifg
+    for e in range(1): #probably put number of episodes in conifg
         # Initialize the environment and state
         env.reset()
         input_stack.__init__(env)
@@ -273,11 +276,13 @@ def plot(stats_list):
     reward_lower = avg_reward - std_reward
     plt.fill_between(avg_reward, reward_lower, reward_upper, color='grey', alpha=.2,
                      label=r'$\pm$ 1 std. dev.')
-    plt.save('Average Reward')
+    # plt.save('Average Reward')
+    utils.cond_mkdir('./plots/')
+    plt.savefig('./plots/plot')
 
 
 stats_list = []
-for e in range(env.config.NUM_EPISODES):
+for e in range(1, env.config.NUM_EPISODES + 1):
     # Initialize the environment and state
     env.reset()
     input_stack.__init__(env)
@@ -310,11 +315,16 @@ for e in range(env.config.NUM_EPISODES):
             break
         env.render()
     # Update the target network, copying all weights and biases in Tron_DQN
-    if e % env.config.TARGET_UPDATE == 0:
+    if e % env.config.TARGET_UPDATE_FREQUENCY == 0:
         target_net.load_state_dict(policy_net.state_dict())
-        # stats_list.append(evaluate(policy_net))
+        stats_list.append(evaluate(policy_net))
+
+    if e % env.config.MODEL_SAVE_FREQUENCY == 0:
+        print('Saving model')
+        utils.cond_mkdir('./models/')
+        torch.save(policy_net, os.path.join('./models/', 'episode_%d.pth' % (e)))
 
 print('Complete')
 env.render()
-# plot(stats_list)
+plot(stats_list)
 # env.close()

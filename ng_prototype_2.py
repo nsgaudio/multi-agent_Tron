@@ -53,10 +53,14 @@ from config import *
 # print()
 
 
-valid_actions = np.array([0, 0, 0, 1])
-print(valid_actions)
-valid_ind = np.argwhere(valid_actions==1)
-print(valid_ind)
-print(valid_ind.shape[0] == 0)
-print(valid_ind.shape)
-ndex = np.random.choice(valid_ind.shape[0], 1, replace=False)
+# valid_actions = np.array([0, 0, 0, 1])
+# print(valid_actions)
+# valid_ind = np.argwhere(valid_actions==1)
+# print(valid_ind)
+# print(valid_ind.shape[0] == 0)
+# print(valid_ind.shape)
+# ndex = np.random.choice(valid_ind.shape[0], 1, replace=False)
+
+
+for e in range(1, 2 + 1):
+    print(e)
