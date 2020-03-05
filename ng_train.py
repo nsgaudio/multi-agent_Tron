@@ -270,10 +270,12 @@ def plot(stats_list):
     num_loss = np.array([stats[3] for stats in stats_list])
     num_ties = np.array([stats[4] for stats in stats_list])
 
-    plt.plot(avg_reward)
+    episode = np.arange(1, len(avg_reward)+1)
+
+    plt.plot(episode, avg_reward)
     reward_upper = avg_reward + std_reward
     reward_lower = avg_reward - std_reward
-    plt.fill_between(avg_reward, reward_lower, reward_upper, color='grey', alpha=.2,
+    plt.fill_between(episode, reward_lower, reward_upper, color='grey', alpha=.2,
                      label=r'$\pm$ 1 std. dev.')
     # plt.save('Average Reward')
     utils.cond_mkdir('./plots/')
