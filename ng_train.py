@@ -45,7 +45,7 @@ class ReplayMemory(object):
         return len(self.memory)
 
 class InputStack(object):
-    def __init__(self, env):  # TODO
+    def __init__(self, env):  # TODO init fixing
         self.input_stack = np.zeros((2*env.config.INPUT_FRAME_NUM, env.board_shape[0], env.board_shape[1]))
         observation, head_board, _ = env.init_board()
         for c in range(2 * env.config.INPUT_FRAME_NUM):
