@@ -130,7 +130,7 @@ def select_action(input_stack, env):
             output = policy_net(input_tensor)
             valid_actions = np.array(input_stack.valid_actions(player_num=1))
             adjustement = 500000 * (valid_actions - 1)
-            output += adjustement
+            output = output + torch.Tensor(adjustement, device=device)
             output = output.max(1)[1].view(1, 1)
             return output
     else:
@@ -260,7 +260,7 @@ def test_select_action(policy_net, input_stack, env):
         output = policy_net(input_tensor)
         valid_actions = np.array(input_stack.valid_actions(player_num=1))
         adjustement = 500000 * (valid_actions - 1)
-        output += adjustement
+        output = output + torch.Tensor(adjustement, device=device)
         output = output.max(1)[1].view(1, 1)
         return output
 
