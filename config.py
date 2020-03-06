@@ -62,3 +62,5 @@ class Config():
 
         # self.NUM_EPISODES            = 50
         self.NUM_EPISODES            = 2
+
+        self.MODEL_EVAL_FREQUENCY    = 100

@@ -316,6 +316,8 @@ for e in range(1, env.config.NUM_EPISODES + 1):
     # Update the target network, copying all weights and biases in Tron_DQN
     if e % env.config.TARGET_UPDATE_FREQUENCY == 0:
         target_net.load_state_dict(policy_net.state_dict())
+
+    if e % env.config.MODEL_EVAL_FREQUENCY == 0:
         stats_list.append(evaluate(policy_net))
         plot(stats_list)
 
