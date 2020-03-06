@@ -221,13 +221,12 @@ def optimize_model(input_stack, env):
 def evaluate(policy_net):
     total_rewards = []
     win_loss = []
-    for e in range(2): #probably put number of episodes in conifg
+    for e in range(1000): #probably put number of episodes in conifg
         # Initialize the environment and state
         env.reset()
         input_stack.__init__(env)
         prev_hard_coded_a = 1  # players init to up
         print('Starting episode:', e)
-        rewards = []
 
         while True:
             # Select and perform an action
@@ -236,16 +235,17 @@ def evaluate(policy_net):
             hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board==2)[0], prev_hard_coded_a, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
             prev_hard_coded_a = hard_coded_a
             next_observation, reward, done, dictionary = env.step([action.item(), hard_coded_a])
-            rewards.append(reward)
 
             input_stack.update(env)
 
             if done:
-                win_loss.append(reward)
+                player_reward = reward[0]
+                win_loss.append(player_reward > 0)
                 break
-        total_rewards.append(np.sum(rewards))
+        total_rewards.append(player_reward)
 
-    stats = [np.mean(total_rewards), np.std(total_rewards), np.sum(win_loss==1), np.sum(win_loss==-1), np.sum(win_loss==0)]
+
+    stats = [np.mean(total_rewards), np.std(total_rewards), np.sum(win_loss), len(win_loss)-np.sum(win_loss)]
 
     return stats
 
@@ -280,7 +280,6 @@ def plot(stats_list):
     # plt.save('Average Reward')
     utils.cond_mkdir('./plots/')
     plt.savefig('./plots/plot')
-
 
 stats_list = []
 for e in range(1, env.config.NUM_EPISODES + 1):
