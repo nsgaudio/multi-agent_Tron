@@ -268,7 +268,6 @@ def plot(stats_list):
     std_reward = np.array([stats[1] for stats in stats_list])
     num_wins = np.array([stats[2] for stats in stats_list])
     num_loss = np.array([stats[3] for stats in stats_list])
-    num_ties = np.array([stats[4] for stats in stats_list])
 
     episode = np.arange(1, len(avg_reward)+1)
 
@@ -318,6 +317,7 @@ for e in range(1, env.config.NUM_EPISODES + 1):
     if e % env.config.TARGET_UPDATE_FREQUENCY == 0:
         target_net.load_state_dict(policy_net.state_dict())
         stats_list.append(evaluate(policy_net))
+        plot(stats_list)
 
     if e % env.config.MODEL_SAVE_FREQUENCY == 0:
         print('Saving model')
