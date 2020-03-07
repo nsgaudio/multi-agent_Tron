@@ -20,6 +20,14 @@ from config import *
 from ng_train import evaluate, Tron_DQN
 
 if __name__ == '__main__':
-    policy_net = torch.load('models/episode_203250.pth', map_location=torch.device('cpu')) # placeholder
-    stats = evaluate(policy_net)
-    print(stats)
+    policy_net = torch.load('models/exp1_36k.pth', map_location=torch.device('cpu')) # placeholder
+    stats1 = evaluate(policy_net)
+    
+
+    policy_net = torch.load('models/exp2_36k.pth', map_location=torch.device('cpu')) # placeholder
+    stats2 = evaluate(policy_net)
+
+    policy_net = torch.load('models/exp3_36k.pth', map_location=torch.device('cpu')) # placeholder
+    stats3 = evaluate(policy_net)
+
+    print("exp1:{}; exp2:{}; exp3:{};".format(stats1,stats2, stats3))

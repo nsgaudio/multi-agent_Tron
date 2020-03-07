@@ -221,7 +221,7 @@ def optimize_model(input_stack, env):
 def evaluate(policy_net):
     total_rewards = []
     win_loss = []
-    for e in range(10): #probably put number of episodes in conifg
+    for e in range(env.config.EVAL_EPISODE): #probably put number of episodes in conifg
         # Initialize the environment and state
         env.reset()
         input_stack.__init__(env)
