@@ -18,7 +18,7 @@ class Config():
         self.colors          = ['white', 'red', 'blue', 'green', 'orange', 'purple']  # white is board color, others are cycles
         self.cmap            = colors.ListedColormap(self.colors[: self.num_players + 1])
         # self.delay           = 0.25
-        self.delay           = 0.025
+        self.delay           = 0.00025
         # other
         self.filename        = None
 
@@ -62,3 +62,5 @@ class Config():
 
         # self.NUM_EPISODES            = 50
         self.NUM_EPISODES            = 2
+
+        self.MODEL_EVAL_FREQUENCY    = 100
