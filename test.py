@@ -30,4 +30,4 @@ if __name__ == '__main__':
     policy_net = torch.load('models/exp3_36k.pth', map_location=torch.device('cpu')) # placeholder
     stats3 = evaluate(policy_net)
 
-    print("exp1:{}; exp2:{}; exp3:{};".format(stats1,stats2, stats3))
+    print("exp1:{};\nexp2:{};\nexp3:{};".format(stats1,stats2, stats3))

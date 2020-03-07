@@ -25,7 +25,7 @@ class Config():
         # reward
         self.win             = 1.0
         self.lose            = -1.0
-        self.time_reward     = 0.001
+        self.time_reward     = 0.0
         self.win_type        = 'all'
 
         # team
@@ -39,7 +39,7 @@ class Config():
 
         ##############################
         # hard-coded policy
-        self.hcp_eps         = 0.5
+        self.hcp_eps         = 0.7
         ##############################
 
         ########## Q learning config #########
@@ -47,20 +47,20 @@ class Config():
 
         ######## Training parameters #########
         self.REPLAY_MEMORY_CAP       = 10000
-        self.BATCH_SIZE              = 6
+        self.BATCH_SIZE              = 16
         self.GAMMA                   = 1.0
         self.EPS_START               = 0.7
         self.EPS_END                 = 0.05
-        self.EPS_DECAY               = 200
-        self.TARGET_UPDATE_FREQUENCY = 1
-        self.MODEL_SAVE_FREQUENCY    = 1
+        self.EPS_DECAY               = 20000
+        self.TARGET_UPDATE_FREQUENCY = 20
+        self.MODEL_SAVE_FREQUENCY    = 50
 
         self.INPUT_FRAME_NUM         = 4
 
         self.KERNEL_SIZE             = 5
         self.STRIDE                  = 2
 
-        self.NUM_EPISODES            = 2
+        self.NUM_EPISODES            = 1000000
 
         self.MODEL_EVAL_FREQUENCY    = 100
-        self.EVAL_EPISODE = 200
+        self.EVAL_EPISODE            = 100

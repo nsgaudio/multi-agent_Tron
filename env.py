@@ -380,7 +380,8 @@ def hard_coded_policy(ob, head, a, board_shape,  A_space, eps=0.5):
 
 if __name__ == '__main__':
 
-    env = EnvTeam()
+    # env = EnvTeam()
+    env = EnvTest()
     A = env.action_space
     a1, a2, a3, a4 = (3, 3, 3, 3)
     while(True):
@@ -389,10 +390,10 @@ if __name__ == '__main__':
         # print(hb)
         a1 = hard_coded_policy(env.observation, np.argwhere(hb == 1)[0], a1, env.board_shape, A, eps=env.config.hcp_eps)
         a2 = hard_coded_policy(env.observation, np.argwhere(hb == 2)[0], a2, env.board_shape, A, eps=env.config.hcp_eps)
-        a3 = hard_coded_policy(env.observation, np.argwhere(hb == 3)[0], a3, env.board_shape, A, eps=env.config.hcp_eps)
-        a4 = hard_coded_policy(env.observation, np.argwhere(hb == 4)[0], a4, env.board_shape, A, eps=env.config.hcp_eps)
+        # a3 = hard_coded_policy(env.observation, np.argwhere(hb == 3)[0], a3, env.board_shape, A, eps=env.config.hcp_eps)
+        # a4 = hard_coded_policy(env.observation, np.argwhere(hb == 4)[0], a4, env.board_shape, A, eps=env.config.hcp_eps)
 
-        ob, r, done, info = env.step([a1,a2, a3, a4])
+        ob, r, done, info = env.step([a1,a2])#, a3, a4])
         
         if done:
             env.render()
