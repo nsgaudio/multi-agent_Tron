@@ -1,4 +1,7 @@
 
+plots/*
+models/*
+*.pem
 *.pyc
 *.pth
 __pycache__/

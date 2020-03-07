@@ -45,6 +45,8 @@ echo "backend: Agg" > ~/.config/matplotlib/matplotlibrc
 ### AWS
 
 > <http://cs231n.github.io/aws-tutorial/>
+>
+> <https://d1b10bmlvqabco.cloudfront.net/attach/k4tab550cjp7a2/jmbczq8n6o53sn/k5w8g2m93z9v/CS234_AWS_Instructions.pdf>
 
 
 
