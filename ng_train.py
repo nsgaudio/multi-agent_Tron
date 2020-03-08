@@ -280,53 +280,55 @@ def plot(stats_list):
     utils.cond_mkdir('./plots/')
     plt.savefig('./plots/plot')
 
-stats_list = []
-for e in range(1, env.config.NUM_EPISODES + 1):
-    # Initialize the environment and state
-    env.reset()
-    input_stack.__init__(env)
-    prev_hard_coded_a = 1  # players init to up
-    print('Starting episode:', e)
-    while True:
-        # Select and perform an action
-        action = select_action(input_stack, env)
-        hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board==2)[0], prev_hard_coded_a, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
-        prev_hard_coded_a = hard_coded_a
-        next_observation, reward, done, dictionary = env.step([action.item(), hard_coded_a])
-        reward = torch.tensor([reward], device=device)
 
-        # Observe new state
-        if done:
-            next_state = None
+if __name__ == '__main__':
+    stats_list = []
+    for e in range(1, env.config.NUM_EPISODES + 1):
+        # Initialize the environment and state
+        env.reset()
+        input_stack.__init__(env)
+        prev_hard_coded_a = 1  # players init to up
+        print('Starting episode:', e)
+        while True:
+            # Select and perform an action
+            action = select_action(input_stack, env)
+            hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board==2)[0], prev_hard_coded_a, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
+            prev_hard_coded_a = hard_coded_a
+            next_observation, reward, done, dictionary = env.step([action.item(), hard_coded_a])
+            reward = torch.tensor([reward], device=device)
 
-        state = input_stack.input_stack
-        input_stack.update(env)
-        next_state = input_stack.input_stack
+            # Observe new state
+            if done:
+                next_state = None
 
-        # Store the transition in memory
-        # memory.push(torch.tensor(state, action, next_state, reward)
-        memory.push(torch.tensor(state, device=device).unsqueeze(0), torch.tensor(action, device=device), torch.tensor(next_state, device=device).unsqueeze(0), torch.tensor(reward, device=device))
+            state = input_stack.input_stack
+            input_stack.update(env)
+            next_state = input_stack.input_stack
 
-        # print('THIS HAPPENS')
-        # Perform one step of the optimization (on the target network)
-        optimize_model(input_stack, env)
-        if done:
-            break
-        env.render()
-    # Update the target network, copying all weights and biases in Tron_DQN
-    if e % env.config.TARGET_UPDATE_FREQUENCY == 0:
-        target_net.load_state_dict(policy_net.state_dict())
+            # Store the transition in memory
+            # memory.push(torch.tensor(state, action, next_state, reward)
+            memory.push(torch.tensor(state, device=device).unsqueeze(0), torch.tensor(action, device=device), torch.tensor(next_state, device=device).unsqueeze(0), torch.tensor(reward, device=device))
 
-    if e % env.config.MODEL_EVAL_FREQUENCY == 0:
-        stats_list.append(evaluate(policy_net))
-        plot(stats_list)
+            # print('THIS HAPPENS')
+            # Perform one step of the optimization (on the target network)
+            optimize_model(input_stack, env)
+            if done:
+                break
+            env.render()
+        # Update the target network, copying all weights and biases in Tron_DQN
+        if e % env.config.TARGET_UPDATE_FREQUENCY == 0:
+            target_net.load_state_dict(policy_net.state_dict())
 
-    if e % env.config.MODEL_SAVE_FREQUENCY == 0:
-        print('Saving model')
-        utils.cond_mkdir('./models/')
-        torch.save(policy_net, os.path.join('./models/', 'episode_%d.pth' % (e)))
+        if e % env.config.MODEL_EVAL_FREQUENCY == 0:
+            stats_list.append(evaluate(policy_net))
+            plot(stats_list)
 
-print('Complete')
-env.render()
-plot(stats_list)
-# env.close()
+        if e % env.config.MODEL_SAVE_FREQUENCY == 0:
+            print('Saving model')
+            utils.cond_mkdir('./models/')
+            torch.save(policy_net, os.path.join('./models/', 'episode_%d.pth' % (e)))
+
+    print('Complete')
+    env.render()
+    plot(stats_list)
+    # env.close()
