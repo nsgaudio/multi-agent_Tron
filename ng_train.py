@@ -198,10 +198,12 @@ def optimize_model(input_stack, env):
                          valid([head[0], head[1]-1], non_final_next_states[b, 0, :, :]), 
                          valid([head[0]+1, head[1]], non_final_next_states[b, 0, :, :])]
         return np.array(bvs)
-    valid_actions = batch_valid_actions(player_num=1, non_final_next_states=non_final_next_states, env=env)
 
-    adjustement = 500000 * (valid_actions - 1)
-    output = output + torch.tensor(adjustement, device=device)
+    if env.config.with_adjustment:
+        valid_actions = batch_valid_actions(player_num=1, non_final_next_states=non_final_next_states, env=env)
+        adjustement = 500000 * (valid_actions - 1)
+        output = output + torch.tensor(adjustement, device=device)
+        
     next_state_values[non_final_mask] = output.max(1)[0].detach()
     # next_state_values[non_final_mask] = target_net(non_final_next_states).max(1)[0].detach()
 
@@ -235,6 +237,9 @@ def evaluate(policy_net):
             hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board==2)[0], prev_hard_coded_a, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
             prev_hard_coded_a = hard_coded_a
             next_observation, reward, done, dictionary = env.step([action.item(), hard_coded_a])
+
+            if env.config.show:
+                env.render()
 
             input_stack.update(env)
 

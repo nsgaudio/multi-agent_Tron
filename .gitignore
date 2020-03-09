@@ -1,6 +1,7 @@
 
 plots/*
 models/*
+*.png
 *.pem
 *.pyc
 *.pth

@@ -7,14 +7,14 @@ class Config():
 
         # init
         self.board_shape     = [40, 40] # y, x
-        self.num_players     = 4
+        self.num_players     = 2
         
         # snake dynamics
         self.init_len        = 5
         self.lengthen_every  = 1
 
         # Visualization
-        self.show            = False
+        self.show            = True
         self.colors          = ['white', 'red', 'blue', 'green', 'orange', 'purple']  # white is board color, others are cycles
         self.cmap            = colors.ListedColormap(self.colors[: self.num_players + 1])
         # self.delay           = 0.25
@@ -64,3 +64,5 @@ class Config():
 
         self.MODEL_EVAL_FREQUENCY    = 100
         self.EVAL_EPISODE            = 100
+
+        self.with_adjustment         = True
