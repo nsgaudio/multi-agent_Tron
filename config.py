@@ -14,7 +14,7 @@ class Config():
         self.lengthen_every  = 1
 
         # Visualization
-        self.show            = True
+        self.show            = False
         self.colors          = ['white', 'red', 'blue', 'green', 'orange', 'purple']  # white is board color, others are cycles
         self.cmap            = colors.ListedColormap(self.colors[: self.num_players + 1])
         # self.delay           = 0.25
@@ -47,24 +47,26 @@ class Config():
 
         ######## Training parameters #########
         self.REPLAY_MEMORY_CAP       = 10000
-        self.BATCH_SIZE              = 16
+        self.BATCH_SIZE              = 6
         self.GAMMA                   = 1.0
         self.EPS_START               = 0.7
         self.EPS_END                 = 0.05
         self.EPS_DECAY               = 20000
-        self.TARGET_UPDATE_FREQUENCY = 20
-        self.MODEL_SAVE_FREQUENCY    = 50
+        self.TARGET_UPDATE_FREQUENCY = 1
+        self.MODEL_SAVE_FREQUENCY    = 1
 
         self.INPUT_FRAME_NUM         = 4
 
         self.KERNEL_SIZE             = 5
         self.STRIDE                  = 2
 
-        self.NUM_EPISODES            = 1000000
+        self.NUM_EPISODES            = 2
 
-        self.MODEL_EVAL_FREQUENCY    = 100
-        self.EVAL_EPISODE            = 100
+        self.MODEL_EVAL_FREQUENCY    = 1
+        self.EVAL_EPISODE            = 1
 
-        self.with_adjustment         = True
-        self.load_model              = None # 'name.pth' # start training with pre-trained model
-        self.load_player2            = None # 'name.pth' # use pre-trained model instead of a hard-coded policy
+        self.with_adjustment         = False
+
+        # None or 'name.pth'
+        self.load_model              = 'exp3_116k.pth'  # start training with pre-trained model
+        self.load_player2            = 'exp3_116k.pth'  # use pre-trained model instead of a hard-coded policy

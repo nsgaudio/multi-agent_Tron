@@ -222,7 +222,7 @@ class EnvSolo(object):
         # else:
         # print(self.observation)
 
-class EnvTeam(EnvTest):
+class EnvTeam(EnvSolo):
     def __init__(self):
         super().__init__()
         self.teams  = self.config.teams
