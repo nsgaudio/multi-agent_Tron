@@ -77,26 +77,34 @@ temp_board = see.input_stack[0].copy()
 temp_head  = see.input_stack[1].copy()
 
 for i in range(2, 2*env.config.INPUT_FRAME_NUM, 2):
-    one_ind = np.squeeze(np.argwhere(temp_head == 1.))
-    two_ind = np.squeeze(np.argwhere(temp_head == 2.))
-    print(one_ind)
-    print(two_ind)
-    temp_head[one_ind[0], one_ind[1]] = 0.
-    temp_head[two_ind[0], two_ind[1]] = 0.
-    temp_head[one_ind[0]-1, one_ind[1]] = 1.
-    temp_head[two_ind[0]-1, two_ind[1]] = 2.
+    # one_ind = np.squeeze(np.argwhere(temp_head == 1.))
+    # two_ind = np.squeeze(np.argwhere(temp_head == 2.))
+    # print(one_ind)
+    # print(two_ind)
+    # temp_head[one_ind[0], one_ind[1]] = 0.
+    # temp_head[two_ind[0], two_ind[1]] = 0.
+    # temp_head[one_ind[0]-1, one_ind[1]] = 1.
+    # temp_head[two_ind[0]-1, two_ind[1]] = 2.
 
-    temp_board[one_ind[0], one_ind[1]] = 0.
-    temp_board[two_ind[0], two_ind[1]] = 0.
+    # temp_board[one_ind[0], one_ind[1]] = 0.
+    # temp_board[two_ind[0], two_ind[1]] = 0.
 
-    print(i)
+    # print(i)
 
+    # see.input_stack[i]   = temp_board
+    # see.input_stack[i+1] = temp_head
+
+    for p in range(1, env.config.num_players+1):
+        ind = np.squeeze(np.argwhere(temp_head == p))
+        temp_head[ind[0], ind[1]] = 0.
+        temp_head[ind[0]-1, ind[1]] = p
+        temp_board[ind[0], ind[1]] = 0.
     see.input_stack[i]   = temp_board
     see.input_stack[i+1] = temp_head
     # print(see.input_stack[0])
 
 
 print('hello')
-for i in range(1, 2*env.config.INPUT_FRAME_NUM, 2):
+for i in range(0, 2*env.config.INPUT_FRAME_NUM, 2):
     print(i)
     print(see.input_stack[i])
