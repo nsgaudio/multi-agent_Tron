@@ -48,7 +48,7 @@ class ActionSpace(object):
             a = 3
         return int(a)
 
-class EnvTest(object):
+class EnvSolo(object):
     def __init__(self):
         self.config = Config()
         self.num_iters = 0

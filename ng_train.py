@@ -15,7 +15,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torchvision.transforms as T
 
-from fu_tron_env_v2 import ActionSpace, EnvTest, hard_coded_policy
+from env import ActionSpace, EnvSolo, hard_coded_policy
 from config import *
 import utils 
 # from test import evaluate, plot, test_select_action
@@ -23,7 +23,7 @@ import utils
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 
-env = EnvTest()
+env = EnvSolo()
 
 class ReplayMemory(object):
     def __init__(self, capacity):
@@ -121,6 +121,9 @@ target_net.eval()
 
 optimizer = optim.RMSprop(policy_net.parameters())
 memory = ReplayMemory(env.config.REPLAY_MEMORY_CAP)
+
+if env.config.load_player2 is not None:
+        player2_net = torch.load('pre_trained_models/{}'.format(env.config.load_player2))
 
 def select_action(input_stack, env):
     sample = random.random()
@@ -240,8 +243,12 @@ def evaluate(policy_net):
             # Select and perform an action
             action = test_select_action(policy_net, input_stack, env)
 
-            hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board==2)[0], prev_hard_coded_a, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
-            prev_hard_coded_a = hard_coded_a
+            if env.config.load_player2 is not None:
+                hard_coded_a = test_select_action(player2_net, input_stack, env)
+            else:
+                hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board==2)[0], prev_hard_coded_a, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
+                prev_hard_coded_a = hard_coded_a
+
             next_observation, reward, done, dictionary = env.step([action.item(), hard_coded_a])
 
             if env.config.show:
@@ -295,6 +302,7 @@ def plot(stats_list):
 
 if __name__ == '__main__':
     stats_list = []
+
     for e in range(1, env.config.NUM_EPISODES + 1):
         # Initialize the environment and state
         env.reset()
@@ -304,9 +312,15 @@ if __name__ == '__main__':
         while True:
             # Select and perform an action
             action = select_action(input_stack, env)
-            hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board==2)[0], prev_hard_coded_a, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
-            prev_hard_coded_a = hard_coded_a
+
+            if env.config.load_player2 is not None:
+                hard_coded_a = test_select_action(player2_net, input_stack, env)
+            else:
+                hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board==2)[0], prev_hard_coded_a, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
+                prev_hard_coded_a = hard_coded_a
+
             next_observation, reward, done, dictionary = env.step([action.item(), hard_coded_a])
+
             reward = torch.tensor([reward], device=device)
 
             # Observe new state
