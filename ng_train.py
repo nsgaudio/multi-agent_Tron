@@ -244,7 +244,7 @@ def evaluate(policy_net):
             action = test_select_action(policy_net, input_stack, env)
 
             if env.config.load_player2 is not None:
-                hard_coded_a = test_select_action(player2_net, input_stack, env)
+                hard_coded_a = test_select_action(player2_net, input_stack, env).item()
             else:
                 hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board==2)[0], prev_hard_coded_a, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
                 prev_hard_coded_a = hard_coded_a
@@ -314,7 +314,7 @@ if __name__ == '__main__':
             action = select_action(input_stack, env)
 
             if env.config.load_player2 is not None:
-                hard_coded_a = test_select_action(player2_net, input_stack, env)
+                hard_coded_a = test_select_action(player2_net, input_stack, env).item()
             else:
                 hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board==2)[0], prev_hard_coded_a, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
                 prev_hard_coded_a = hard_coded_a
