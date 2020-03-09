@@ -53,6 +53,20 @@ class InputStack(object):
                 self.input_stack[c, :, :] = observation
             else:
                 self.input_stack[c, :, :] = head_board
+            
+            temp_board = self.input_stack[0].copy()
+            temp_head  = self.input_stack[1].copy()
+            for i in range(2, 2*env.config.INPUT_FRAME_NUM, 2):
+                one_ind = np.squeeze(np.argwhere(temp_head == 1.))
+                two_ind = np.squeeze(np.argwhere(temp_head == 2.))
+                temp_head[one_ind[0], one_ind[1]] = 0.
+                temp_head[two_ind[0], two_ind[1]] = 0.
+                temp_head[one_ind[0]-1, one_ind[1]] = 1.
+                temp_head[two_ind[0]-1, two_ind[1]] = 2.
+                temp_board[one_ind[0], one_ind[1]] = 0.
+                temp_board[two_ind[0], two_ind[1]] = 0.
+                self.input_stack[i]   = temp_board
+                self.input_stack[i+1] = temp_head
 
     def update(self, env):
         self.input_stack = np.append(np.expand_dims(env.head_board, axis=0), self.input_stack, axis=0)
