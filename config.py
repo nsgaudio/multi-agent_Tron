@@ -66,3 +66,5 @@ class Config():
         self.EVAL_EPISODE            = 100
 
         self.with_adjustment         = True
+        self.load_model              = None # 'name.pth' # start training with pre-trained model
+        self.load_player2            = None # 'name.pth' # use pre-trained model instead of a hard-coded policy

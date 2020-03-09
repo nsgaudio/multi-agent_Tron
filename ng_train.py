@@ -105,8 +105,13 @@ env.render()
 input_stack = InputStack(env)
 # input_stack.update(env)
 
-policy_net = Tron_DQN(h=env.board_shape[0], w=env.board_shape[1], outputs=env.action_space.n, env=env).to(device)
-target_net = Tron_DQN(h=env.board_shape[0], w=env.board_shape[1], outputs=env.action_space.n, env=env).to(device)
+if env.config.load_model is not None:
+    policy_net = torch.load('pre_trained_models/{}'.format(env.config.load_model)).to(device)
+    target_net = torch.load('pre_trained_models/{}'.format(env.config.load_model)).to(device)
+    print('load model {} as pre-trained network'.format(env.config.load_model))
+else:
+    policy_net = Tron_DQN(h=env.board_shape[0], w=env.board_shape[1], outputs=env.action_space.n, env=env).to(device)
+    target_net = Tron_DQN(h=env.board_shape[0], w=env.board_shape[1], outputs=env.action_space.n, env=env).to(device)
 
 policy_net = policy_net.double()
 target_net = target_net.double()
@@ -128,9 +133,10 @@ def select_action(input_stack, env):
             # found, so we pick action with the larger expected reward.
             input_tensor = torch.tensor(input_stack.input_stack, device=device).unsqueeze(0)
             output = policy_net(input_tensor)
-            valid_actions = np.array(input_stack.valid_actions(player_num=1))
-            adjustement = 500000 * (valid_actions - 1)
-            output = output + torch.tensor(adjustement, device=device)
+            if env.config.with_adjustment:
+                valid_actions = np.array(input_stack.valid_actions(player_num=1))
+                adjustement = 500000 * (valid_actions - 1)
+                output = output + torch.tensor(adjustement, device=device)
             output = output.max(1)[1].view(1, 1)
             return output
     else:
@@ -203,7 +209,7 @@ def optimize_model(input_stack, env):
         valid_actions = batch_valid_actions(player_num=1, non_final_next_states=non_final_next_states, env=env)
         adjustement = 500000 * (valid_actions - 1)
         output = output + torch.tensor(adjustement, device=device)
-        
+
     next_state_values[non_final_mask] = output.max(1)[0].detach()
     # next_state_values[non_final_mask] = target_net(non_final_next_states).max(1)[0].detach()
 
@@ -261,9 +267,10 @@ def test_select_action(policy_net, input_stack, env):
         # found, so we pick action with the larger expected reward.
         input_tensor = torch.tensor(input_stack.input_stack, device=device).unsqueeze(0)
         output = policy_net(input_tensor)
-        valid_actions = np.array(input_stack.valid_actions(player_num=1))
-        adjustement = 500000 * (valid_actions - 1)
-        output = output + torch.tensor(adjustement, device=device)
+        if env.config.with_adjustment:
+            valid_actions = np.array(input_stack.valid_actions(player_num=1))
+            adjustement = 500000 * (valid_actions - 1)
+            output = output + torch.tensor(adjustement, device=device)
         output = output.max(1)[1].view(1, 1)
         return output
 
