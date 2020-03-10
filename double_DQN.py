@@ -33,13 +33,15 @@ env.render()
 input_stack = InputStack(env)
 # input_stack.update(env)
 
+print('lets see this', np.square(env.action_space.n))
+
 if env.config.load_model is not None:
     policy_net = torch.load('pre_trained_models/{}'.format(env.config.load_model)).to(device)
     target_net = torch.load('pre_trained_models/{}'.format(env.config.load_model)).to(device)
     print('load model {} as pre-trained network'.format(env.config.load_model))
 else:
-    policy_net = Tron_DQN(h=env.board_shape[0], w=env.board_shape[1], outputs=env.action_space.n, env=env).to(device)
-    target_net = Tron_DQN(h=env.board_shape[0], w=env.board_shape[1], outputs=env.action_space.n, env=env).to(device)
+    policy_net = Tron_DQN(h=env.board_shape[0], w=env.board_shape[1], outputs=np.square(env.action_space.n), env=env).to(device)
+    target_net = Tron_DQN(h=env.board_shape[0], w=env.board_shape[1], outputs=np.square(env.action_space.n), env=env).to(device)
 
 policy_net = policy_net.double()
 target_net = target_net.double()
@@ -50,8 +52,8 @@ target_net.eval()
 optimizer = optim.RMSprop(policy_net.parameters())
 memory = ReplayMemory(env.config.REPLAY_MEMORY_CAP)
 
-if env.config.load_player2 is not None:
-        player2_net = torch.load('pre_trained_models/{}'.format(env.config.load_player2))
+if env.config.load_opponent is not None:
+        opponent_net = torch.load('pre_trained_models/{}'.format(env.config.load_opponent))
 
 def select_action(input_stack, env):
     sample = random.random()
@@ -65,19 +67,25 @@ def select_action(input_stack, env):
             input_tensor = torch.tensor(input_stack.input_stack, device=device).unsqueeze(0)
             output = policy_net(input_tensor)
             if env.config.with_adjustment:
-                valid_actions = np.array(input_stack.valid_actions(player_num=1))
+                valid_actions_1 = np.array(input_stack.valid_actions(player_num=1))
+                valid_actions_2 = np.array(input_stack.valid_actions(player_num=2))
+                valid_actions = np.outer(valid_actions_1, valid_actions_2)
+                valid_actions = np.reshape(valid_actions, (np.square(env.action_space.n)))
                 adjustement = 500000 * (valid_actions - 1)
                 output = output + torch.tensor(adjustement, device=device)
             output = output.max(1)[1].view(1, 1)
             return output
     else:
-        valid_actions = np.array(input_stack.valid_actions(player_num=1))
+        valid_actions_1 = np.array(input_stack.valid_actions(player_num=1))
+        valid_actions_2 = np.array(input_stack.valid_actions(player_num=2))
+        valid_actions = np.outer(valid_actions_1, valid_actions_2)
+        valid_actions = np.reshape(valid_actions, (np.square(env.action_space.n)))
         valid_ind = np.argwhere(valid_actions==1)
         if valid_ind.shape[0] != 0:
             index = np.random.choice(valid_ind.shape[0], 1, replace=False) # there is a valid index
             selected_action = valid_ind[index]
         else:
-            index = np.random.choice(env.action_space.n, 1, replace=False)  # will die
+            index = np.random.choice(np.square(env.action_space.n), 1, replace=False)  # will die
             selected_action = np.expand_dims(index, axis=-1)
         return torch.tensor(selected_action, device=device, dtype=torch.long)
 
@@ -101,7 +109,7 @@ def optimize_model(input_stack, env):
 
     non_final_next_states = torch.cat([torch.tensor(s, device=device) for s in batch.next_state if s is not None])
     # torch.tensor(input_stack.input_stack, device=device)
-    state_batch = torch.cat(batch.state)
+    state_batch  = torch.cat(batch.state)
     action_batch = torch.cat(batch.action)
     reward_batch = torch.cat(batch.reward)
 
@@ -118,26 +126,39 @@ def optimize_model(input_stack, env):
     next_state_values = torch.zeros(env.config.BATCH_SIZE, device=device).double()
 
     output = target_net(non_final_next_states)
-    def batch_valid_actions(player_num, non_final_next_states, env):
+    def batch_valid_actions(non_final_next_states, env):
         def valid(pos, obs):
             if pos[0] >= env.board_shape[0] or pos[0] < 0:
                 return False
-            if pos[1]>= env.board_shape[1] or pos[1] < 0:
+            if pos[1] >= env.board_shape[1] or pos[1] < 0:
                 return False
             if obs[pos[0], pos[1]] != 0:
                 return False
             return True
-        bvs = np.zeros((env.config.BATCH_SIZE, env.action_space.n))
+        bvs = np.zeros((env.config.BATCH_SIZE, np.square(env.action_space.n)))
         for b in range(env.config.BATCH_SIZE):
-            head = np.argwhere(non_final_next_states[b, 1, :, :].cpu().numpy()==player_num).squeeze()
-            bvs[b, :] = [valid([head[0], head[1]+1], non_final_next_states[b, 0, :, :]), 
-                         valid([head[0]-1, head[1]], non_final_next_states[b, 0, :, :]), 
-                         valid([head[0], head[1]-1], non_final_next_states[b, 0, :, :]), 
-                         valid([head[0]+1, head[1]], non_final_next_states[b, 0, :, :])]
+            head_1 = np.argwhere(non_final_next_states[b, 1, :, :].cpu().numpy()==1).squeeze()
+            head_2 = np.argwhere(non_final_next_states[b, 1, :, :].cpu().numpy()==2).squeeze()
+            bvs[b, :] = [valid([head_1[0], head_1[1]+1], non_final_next_states[b, 0, :, :]) * valid([head_2[0], head_2[1]+1], non_final_next_states[b, 0, :, :]), 
+                         valid([head_1[0], head_1[1]+1], non_final_next_states[b, 0, :, :]) * valid([head_2[0]-1, head_2[1]], non_final_next_states[b, 0, :, :]), 
+                         valid([head_1[0], head_1[1]+1], non_final_next_states[b, 0, :, :]) * valid([head_2[0], head_2[1]-1], non_final_next_states[b, 0, :, :]), 
+                         valid([head_1[0], head_1[1]+1], non_final_next_states[b, 0, :, :]) * valid([head_2[0]+1, head_2[1]], non_final_next_states[b, 0, :, :]), 
+                         valid([head_1[0]-1, head_1[1]], non_final_next_states[b, 0, :, :]) * valid([head_2[0], head_2[1]+1], non_final_next_states[b, 0, :, :]), 
+                         valid([head_1[0]-1, head_1[1]], non_final_next_states[b, 0, :, :]) * valid([head_2[0]-1, head_2[1]], non_final_next_states[b, 0, :, :]), 
+                         valid([head_1[0]-1, head_1[1]], non_final_next_states[b, 0, :, :]) * valid([head_2[0], head_2[1]-1], non_final_next_states[b, 0, :, :]), 
+                         valid([head_1[0]-1, head_1[1]], non_final_next_states[b, 0, :, :]) * valid([head_2[0]+1, head_2[1]], non_final_next_states[b, 0, :, :]),
+                         valid([head_1[0], head_1[1]-1], non_final_next_states[b, 0, :, :]) * valid([head_2[0], head_2[1]+1], non_final_next_states[b, 0, :, :]), 
+                         valid([head_1[0], head_1[1]-1], non_final_next_states[b, 0, :, :]) * valid([head_2[0]-1, head_2[1]], non_final_next_states[b, 0, :, :]), 
+                         valid([head_1[0], head_1[1]-1], non_final_next_states[b, 0, :, :]) * valid([head_2[0], head_2[1]-1], non_final_next_states[b, 0, :, :]), 
+                         valid([head_1[0], head_1[1]-1], non_final_next_states[b, 0, :, :]) * valid([head_2[0]+1, head_2[1]], non_final_next_states[b, 0, :, :]),
+                         valid([head_1[0]+1, head_1[1]], non_final_next_states[b, 0, :, :]) * valid([head_2[0], head_2[1]+1], non_final_next_states[b, 0, :, :]), 
+                         valid([head_1[0]+1, head_1[1]], non_final_next_states[b, 0, :, :]) * valid([head_2[0]-1, head_2[1]], non_final_next_states[b, 0, :, :]), 
+                         valid([head_1[0]+1, head_1[1]], non_final_next_states[b, 0, :, :]) * valid([head_2[0], head_2[1]-1], non_final_next_states[b, 0, :, :]), 
+                         valid([head_1[0]+1, head_1[1]], non_final_next_states[b, 0, :, :]) * valid([head_2[0]+1, head_2[1]], non_final_next_states[b, 0, :, :])]
         return np.array(bvs)
 
     if env.config.with_adjustment:
-        valid_actions = batch_valid_actions(player_num=1, non_final_next_states=non_final_next_states, env=env)
+        valid_actions = batch_valid_actions(non_final_next_states=non_final_next_states, env=env)
         adjustement = 500000 * (valid_actions - 1)
         output = output + torch.tensor(adjustement, device=device)
 
@@ -164,20 +185,30 @@ def evaluate(policy_net):
         # Initialize the environment and state
         env.reset()
         input_stack.__init__(env)
-        prev_hard_coded_a = 1  # players init to up
+        prev_a_3 = 1  # players init to up
+        prev_a_4 = 1  # players init to up
         print('Starting episode:', e)
 
         while True:
             # Select and perform an action
             action = test_select_action(policy_net, input_stack, env)
+            a_1 = action.item() % env.action_space.n
+            a_2 = np.floor_divide(action.item(), env.action_space.n)
 
-            if env.config.load_player2 is not None:
-                hard_coded_a = test_select_action(player2_net, input_stack, env).item()
+            # print('column', a % 4)
+            # print('row', np.floor_divide(a, 4))
+
+            if env.config.load_opponent is not None:
+                opponent_action = test_select_action(opponent_net, input_stack, env)
+                a_3 = opponent_action.item() % env.action_space.n
+                a_4 = np.floor_divide(opponent_action.item(), env.action_space.n)
             else:
-                hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board==2)[0], prev_hard_coded_a, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
-                prev_hard_coded_a = hard_coded_a
+                a_3 = hard_coded_policy(env.observation, np.argwhere(env.head_board==3)[0], prev_a_3, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
+                a_4 = hard_coded_policy(env.observation, np.argwhere(env.head_board==4)[0], prev_a_4, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
+                prev_a_3 = a_3
+                prev_a_4 = a_4
 
-            next_observation, reward, done, dictionary = env.step([action.item(), hard_coded_a])
+            next_observation, reward, done, dictionary = env.step([a_1, a_2, a_3, a_4])
 
             if env.config.show:
                 env.render()
@@ -203,7 +234,10 @@ def test_select_action(policy_net, input_stack, env):
         input_tensor = torch.tensor(input_stack.input_stack, device=device).unsqueeze(0)
         output = policy_net(input_tensor)
         if env.config.with_adjustment:
-            valid_actions = np.array(input_stack.valid_actions(player_num=1))
+            valid_actions_1 = np.array(input_stack.valid_actions(player_num=1))
+            valid_actions_2 = np.array(input_stack.valid_actions(player_num=2))
+            valid_actions = np.outer(valid_actions_1, valid_actions_2)
+            valid_actions = np.reshape(valid_actions, (np.square(env.action_space.n)))
             adjustement = 500000 * (valid_actions - 1)
             output = output + torch.tensor(adjustement, device=device)
         output = output.max(1)[1].view(1, 1)
@@ -235,19 +269,26 @@ if __name__ == '__main__':
         # Initialize the environment and state
         env.reset()
         input_stack.__init__(env)
-        prev_hard_coded_a = 1  # players init to up
+        prev_a_3 = 1  # players init to up
+        prev_a_4 = 1  # players init to up
         print('Starting episode:', e)
         while True:
             # Select and perform an action
-            action = select_action(input_stack, env)
+            action = test_select_action(policy_net, input_stack, env)
+            a_1 = action.item() % env.action_space.n
+            a_2 = np.floor_divide(action.item(), env.action_space.n)
 
-            if env.config.load_player2 is not None:
-                hard_coded_a = test_select_action(player2_net, input_stack, env).item()
+            if env.config.load_opponent is not None:
+                opponent_action = test_select_action(opponent_net, input_stack, env)
+                a_3 = opponent_action.item() % env.action_space.n
+                a_4 = np.floor_divide(opponent_action.item(), env.action_space.n)
             else:
-                hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board==2)[0], prev_hard_coded_a, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
-                prev_hard_coded_a = hard_coded_a
+                a_3 = hard_coded_policy(env.observation, np.argwhere(env.head_board==3)[0], prev_a_3, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
+                a_4 = hard_coded_policy(env.observation, np.argwhere(env.head_board==4)[0], prev_a_4, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
+                prev_a_3 = a_3
+                prev_a_4 = a_4
 
-            next_observation, reward, done, dictionary = env.step([action.item(), hard_coded_a])
+            next_observation, reward, done, dictionary = env.step([a_1, a_2, a_3, a_4])
 
             reward = torch.tensor([reward], device=device)
 
