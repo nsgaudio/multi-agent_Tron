@@ -168,7 +168,6 @@ class EnvSolo(object):
         # use action to update tmp_head
         # check collision for tmp_head with snakes
         for i in range(self.num_players):
-
             assert(actions[i] in {0,1,2,3})
 
             current_head = self.snakes[i][-1]
