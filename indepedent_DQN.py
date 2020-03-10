@@ -1,5 +1,4 @@
 # 2 agents conrolling separate 2 separate snakes/cycles
-
 import os
 import math
 import random
@@ -287,7 +286,7 @@ def plot(stats_list):
     plt.savefig('./plots_2_agent/reward_2')
 
     plt.figure()
-    plt.plot(episode, avg_reward_1)
+    plt.plot(episode, avg_reward_team)
     reward_upper = avg_reward_team + std_reward_team
     reward_lower = avg_reward_team - std_reward_team
     plt.fill_between(episode, reward_lower, reward_upper, color='grey', alpha=.2,

@@ -133,8 +133,13 @@ target_net.eval()
 optimizer = optim.RMSprop(policy_net.parameters())
 memory = ReplayMemory(env.config.REPLAY_MEMORY_CAP)
 
+<<<<<<< HEAD
 if env.config.load_player2 is not None:
-    player2_net = torch.load('pre_trained_models/{}'.format(env.config.load_player2))
+        player2_net = torch.load('pre_trained_models/{}'.format(env.config.load_player2))
+=======
+if env.config.load_opponent is not None:
+        player2_net = torch.load('pre_trained_models/{}'.format(env.config.load_opponent))
+>>>>>>> 818c7c90269155534209ffe10dc9662ff9d4e4cf
 
 def select_action(input_stack, env):
     sample = random.random()
@@ -147,10 +152,12 @@ def select_action(input_stack, env):
             # found, so we pick action with the larger expected reward.
             input_tensor = torch.tensor(input_stack.input_stack, device=device).unsqueeze(0)
             output = policy_net(input_tensor)
+            print('OUTPUT SHAPE', output.shape)
             if env.config.with_adjustment:
                 valid_actions = np.array(input_stack.valid_actions(player_num=1))
                 adjustement = 500000 * (valid_actions - 1)
                 output = output + torch.tensor(adjustement, device=device)
+            # print('OUTPUT SHAPE', output.shape)
             output = output.max(1)[1].view(1, 1)
             return output
     else:
@@ -254,7 +261,7 @@ def evaluate(policy_net):
             # Select and perform an action
             action = test_select_action(policy_net, input_stack, env)
 
-            if env.config.load_player2 is not None:
+            if env.config.load_opponent is not None:
                 hard_coded_a = test_select_action(player2_net, input_stack, env).item()
             else:
                 hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board==2)[0], prev_hard_coded_a, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
@@ -324,7 +331,7 @@ if __name__ == '__main__':
             # Select and perform an action
             action = select_action(input_stack, env)
 
-            if env.config.load_player2 is not None:
+            if env.config.load_opponent is not None:
                 hard_coded_a = test_select_action(player2_net, input_stack, env).item()
             else:
                 hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board==2)[0], prev_hard_coded_a, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
