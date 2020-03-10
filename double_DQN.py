@@ -191,7 +191,7 @@ def evaluate(policy_net):
 
         while True:
             # Select and perform an action
-            action = test_select_action(policy_net, input_stack, env)
+            action = test_select_action(policy_net, input_stack, env, 1, 2)
             a_1 = action.item() % env.action_space.n
             a_2 = np.floor_divide(action.item(), env.action_space.n)
 
@@ -199,7 +199,7 @@ def evaluate(policy_net):
             # print('row', np.floor_divide(a, 4))
 
             if env.config.load_opponent is not None:
-                opponent_action = test_select_action(opponent_net, input_stack, env)
+                opponent_action = test_select_action(opponent_net, input_stack, env, 3, 4)
                 a_3 = opponent_action.item() % env.action_space.n
                 a_4 = np.floor_divide(opponent_action.item(), env.action_space.n)
             else:
@@ -226,7 +226,7 @@ def evaluate(policy_net):
 
     return stats
 
-def test_select_action(policy_net, input_stack, env):
+def test_select_action(policy_net, input_stack, env, player_num_a, player_num_b):
     with torch.no_grad():
         # t.max(1) will return largest column value of each row.
         # second column on max result is index of where max element was
@@ -234,8 +234,8 @@ def test_select_action(policy_net, input_stack, env):
         input_tensor = torch.tensor(input_stack.input_stack, device=device).unsqueeze(0)
         output = policy_net(input_tensor)
         if env.config.with_adjustment:
-            valid_actions_1 = np.array(input_stack.valid_actions(player_num=1))
-            valid_actions_2 = np.array(input_stack.valid_actions(player_num=2))
+            valid_actions_1 = np.array(input_stack.valid_actions(player_num=player_num_a))
+            valid_actions_2 = np.array(input_stack.valid_actions(player_num=player_num_b))
             valid_actions = np.outer(valid_actions_1, valid_actions_2)
             valid_actions = np.reshape(valid_actions, (np.square(env.action_space.n)))
             adjustement = 500000 * (valid_actions - 1)
@@ -274,12 +274,12 @@ if __name__ == '__main__':
         print('Starting episode:', e)
         while True:
             # Select and perform an action
-            action = test_select_action(policy_net, input_stack, env)
+            action = test_select_action(policy_net, input_stack, env, 1, 2)
             a_1 = action.item() % env.action_space.n
             a_2 = np.floor_divide(action.item(), env.action_space.n)
 
             if env.config.load_opponent is not None:
-                opponent_action = test_select_action(opponent_net, input_stack, env)
+                opponent_action = test_select_action(opponent_net, input_stack, env, 3, 4)
                 a_3 = opponent_action.item() % env.action_space.n
                 a_4 = np.floor_divide(opponent_action.item(), env.action_space.n)
             else:

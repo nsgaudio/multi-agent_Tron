@@ -14,7 +14,7 @@ class Config():
         self.lengthen_every  = 1
 
         # Visualization
-        self.show            = True
+        self.show            = False
         self.colors          = ['white', 'red', 'blue', 'green', 'orange', 'purple']  # white is board color, others are cycles
         self.cmap            = colors.ListedColormap(self.colors[: self.num_players + 1])
         # self.delay           = 0.25
@@ -26,7 +26,7 @@ class Config():
         # reward
         self.win             = 1.0
         self.lose            = -1.0
-        self.time_reward     = 0.0
+        self.time_reward     = -0.001
         self.win_type        = 'all'
 
         # team
