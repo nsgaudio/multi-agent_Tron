@@ -60,7 +60,7 @@ class Config():
         self.KERNEL_SIZE             = 5
         self.STRIDE                  = 2
 
-        self.NUM_EPISODES            = 2
+        self.NUM_EPISODES            = 10
 
         self.MODEL_EVAL_FREQUENCY    = 1
         self.EVAL_EPISODE            = 1
@@ -68,5 +68,7 @@ class Config():
         self.with_adjustment         = False
 
         # None or 'name.pth'
-        self.load_model              = 'exp3_116k.pth'  # start training with pre-trained model
-        self.load_player2            = 'exp3_116k.pth'  # use pre-trained model instead of a hard-coded policy
+        # self.load_model              = 'exp3_116k.pth'  # start training with pre-trained model
+        self.load_model              = None  # start training with pre-trained model
+        # self.load_player2            = 'exp3_116k.pth'  # use pre-trained model instead of a hard-coded policy
+        self.load_player2            = None  # use pre-trained model instead of a hard-coded policy
