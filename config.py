@@ -7,7 +7,7 @@ class Config():
 
         # init
         self.board_shape     = [40, 40] # y, x
-        self.num_players     = 2
+        self.num_players     = 4
         
         # snake dynamics
         self.init_len        = 5
@@ -26,7 +26,7 @@ class Config():
         # reward
         self.win             = 1.0
         self.lose            = -1.0
-        self.time_reward     = 0.0
+        self.time_reward     = -0.001
         self.win_type        = 'all'
 
         # team
@@ -68,5 +68,5 @@ class Config():
         # None or 'name.pth'
         # self.load_model              = 'exp3_116k.pth'  # start training with pre-trained model
         self.load_model              = None  # start training with pre-trained model
-        # self.load_player2            = 'exp3_116k.pth'  # use pre-trained model instead of a hard-coded policy
-        self.load_player2            = None  # use pre-trained model instead of a hard-coded policy
+        # self.load_opponent            = 'exp3_116k.pth'  # use pre-trained model instead of a hard-coded policy
+        self.load_opponent           = None  # use pre-trained model instead of a hard-coded policy

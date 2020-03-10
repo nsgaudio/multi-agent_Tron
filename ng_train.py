@@ -134,7 +134,7 @@ optimizer = optim.RMSprop(policy_net.parameters())
 memory = ReplayMemory(env.config.REPLAY_MEMORY_CAP)
 
 if env.config.load_player2 is not None:
-        player2_net = torch.load('pre_trained_models/{}'.format(env.config.load_player2))
+    player2_net = torch.load('pre_trained_models/{}'.format(env.config.load_player2))
 
 def select_action(input_stack, env):
     sample = random.random()

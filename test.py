@@ -29,7 +29,7 @@ if __name__ == '__main__':
     # policy_net = torch.load('models/exp1_{}.pth'.format(num), map_location=torch.device('cpu')) # placeholder
     # stats1 = evaluate(policy_net)
     
-    policy_net = torch.load('models/exp2_{}.pth'.format(num), map_location=torch.device('cpu')) # placeholder
+    policy_net = torch.load('models/archieve/exp2_{}.pth'.format(num), map_location=torch.device('cpu')) # placeholder
     stats2 = evaluate(policy_net)
 
     # policy_net = torch.load('models/exp3_{}.pth'.format(num), map_location=torch.device('cpu')) # placeholder
