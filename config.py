@@ -21,6 +21,7 @@ class Config():
         self.delay           = 0.00025
         # other
         self.filename        = None
+        self.verbal          = False
 
         # reward
         self.win             = 1.0

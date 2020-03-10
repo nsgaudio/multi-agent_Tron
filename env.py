@@ -22,7 +22,6 @@ class ActionSpace(object):
         return np.random.randint(0, high=self.n)
 
     def a_to_4dir(self, a):
-        # print(self.n)
         assert(self.n == 4)
         v = None
         if a == 0:
@@ -168,6 +167,7 @@ class EnvSolo(object):
         # use action to update tmp_head
         # check collision for tmp_head with snakes
         for i in range(self.num_players):
+
             assert(actions[i] in {0,1,2,3})
 
             current_head = self.snakes[i][-1]
@@ -177,7 +177,8 @@ class EnvSolo(object):
             if not self.inside(tmp_head):
                 status[i] = 0
                 self.done = True
-                print("player {} outside of board".format(i+1))
+                if self.config.verbal:
+                    print("player {} outside of board".format(i+1))
                 continue
 
             j = self.observation[tmp_head.y, tmp_head.x]
@@ -187,7 +188,9 @@ class EnvSolo(object):
                 # if win_type is 'one'
 
                 self.done = True
-                print("{} in {}'s body".format(i+1,j))
+
+                if self.config.verbal:
+                    print("{} in {}'s body".format(i+1,j))
 
         
         # check collision within new_heads
@@ -201,7 +204,8 @@ class EnvSolo(object):
                     status[i] = 0
                     status[j] = 0
                     self.done = True
-                    print("{} and {} bump into each other".format(i+1,j+1))
+                    if self.config.verbal:
+                        print("{} and {} bump into each other".format(i+1,j+1))
         
 
         # update observation and tmp_head to snakes
@@ -293,7 +297,8 @@ class EnvTeam(EnvSolo):
             if not self.inside(tmp_head):
                 status[team_ids] = 0
                 self.done = True
-                print("player {} outside of board".format(i+1))
+                if self.config.verbal:
+                    print("player {} outside of board".format(i+1))
                 continue
 
             j = self.observation[tmp_head.y, tmp_head.x]
@@ -303,7 +308,8 @@ class EnvTeam(EnvSolo):
                 # if win_type is 'one'
 
                 self.done = True
-                print("{} in {}'s body".format(i+1,j))
+                if self.config.verbal:
+                    print("{} in {}'s body".format(i+1,j))
 
         
         # check collision within new_heads
@@ -317,7 +323,8 @@ class EnvTeam(EnvSolo):
                     status[self.get_team_ids(i)] = 0
                     status[self.get_team_ids(j)] = 0
                     self.done = True
-                    print("{} and {} bump into each other".format(i+1,j+1))
+                    if self.config.verbal:
+                        print("{} and {} bump into each other".format(i+1,j+1))
         
 
         # update observation and tmp_head to snakes
@@ -380,7 +387,7 @@ def hard_coded_policy(ob, head, a, board_shape,  A_space, eps=0.5):
 if __name__ == '__main__':
 
     # env = EnvTeam()
-    env = EnvTest()
+    env = EnvSolo()
     A = env.action_space
     a1, a2, a3, a4 = (3, 3, 3, 3)
     while(True):
