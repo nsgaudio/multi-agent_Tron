@@ -40,33 +40,30 @@ class Config():
 
         ##############################
         # hard-coded policy
-        self.hcp_eps         = 0.7
+        self.hcp_eps         = 0.3
         ##############################
-
-        ########## Q learning config #########
-        self.time_steps      = 1000
 
         ######## Training parameters #########
         self.REPLAY_MEMORY_CAP       = 10000
-        self.BATCH_SIZE              = 6
+        self.BATCH_SIZE              = 16
         self.GAMMA                   = 1.0
         self.EPS_START               = 0.7
         self.EPS_END                 = 0.05
-        self.EPS_DECAY               = 20000
-        self.TARGET_UPDATE_FREQUENCY = 1
-        self.MODEL_SAVE_FREQUENCY    = 1
+        self.EPS_DECAY               = 10000
+        self.TARGET_UPDATE_FREQUENCY = 20
+        self.MODEL_SAVE_FREQUENCY    = 100
 
         self.INPUT_FRAME_NUM         = 4
 
         self.KERNEL_SIZE             = 5
         self.STRIDE                  = 2
 
-        self.NUM_EPISODES            = 10
+        self.NUM_EPISODES            = 100000
 
-        self.MODEL_EVAL_FREQUENCY    = 1
-        self.EVAL_EPISODE            = 1
+        self.MODEL_EVAL_FREQUENCY    = 100
+        self.EVAL_EPISODE            = 100
 
-        self.with_adjustment         = False
+        self.with_adjustment         = True
 
         # None or 'name.pth'
         # self.load_model              = 'exp3_116k.pth'  # start training with pre-trained model
