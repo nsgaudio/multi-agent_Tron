@@ -33,7 +33,7 @@ env.render()
 input_stack = InputStack(env)
 # input_stack.update(env)
 
-print('lets see this', np.square(env.action_space.n))
+# print('lets see this', np.square(env.action_space.n))
 
 if env.config.load_model is not None:
     policy_net = torch.load('pre_trained_models/{}'.format(env.config.load_model)).to(device)
@@ -197,6 +197,7 @@ def evaluate(policy_net):
 
             # print('column', a % 4)
             # print('row', np.floor_divide(a, 4))
+            # print(input_stack.input_stack[0:2,10:30,10:30])
 
             if env.config.load_opponent is not None:
                 opponent_action = test_select_action(opponent_net, input_stack, env, 3, 4)
@@ -212,6 +213,8 @@ def evaluate(policy_net):
 
             if env.config.show:
                 env.render()
+            # print(next_observation)
+            # print(a_2)
 
             input_stack.update(env)
 
@@ -236,10 +239,12 @@ def test_select_action(policy_net, input_stack, env, player_num_a, player_num_b)
         if env.config.with_adjustment:
             valid_actions_1 = np.array(input_stack.valid_actions(player_num=player_num_a))
             valid_actions_2 = np.array(input_stack.valid_actions(player_num=player_num_b))
-            valid_actions = np.outer(valid_actions_1, valid_actions_2)
+            valid_actions = np.outer(valid_actions_2, valid_actions_1) ###TODO####to check#########
             valid_actions = np.reshape(valid_actions, (np.square(env.action_space.n)))
-            adjustement = 500000 * (valid_actions - 1)
+            adjustement = 50000000000 * (valid_actions - 1)
             output = output + torch.tensor(adjustement, device=device)
+            # print(valid_actions,output)
+            # print('valid 1: {}\n valid 2: {}'.format(valid_actions_1, valid_actions_2))
         output = output.max(1)[1].view(1, 1)
         return output
 

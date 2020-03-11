@@ -64,6 +64,7 @@ class InputStack(object):
                 temp_board[ind[0], ind[1]]  = 0.
             self.input_stack[i]   = temp_board
             self.input_stack[i+1] = temp_head
+        self.env = env
 
     def update(self, env):
         self.input_stack = np.append(np.expand_dims(env.head_board, axis=0), self.input_stack, axis=0)
@@ -72,13 +73,13 @@ class InputStack(object):
         self.input_stack = np.delete(self.input_stack, -1, axis=0)
     
     def valid_actions(self, player_num):
-        head = np.argwhere(env.head_board==player_num).squeeze()
+        head = np.argwhere(self.env.head_board==player_num).squeeze()
         def valid(pos):
-            if pos[0] >= env.board_shape[0] or pos[0] < 0:
+            if pos[0] >= self.env.board_shape[0] or pos[0] < 0:
                 return False
-            if pos[1]>= env.board_shape[1] or pos[1] < 0:
+            if pos[1]>= self.env.board_shape[1] or pos[1] < 0:
                 return False
-            if env.observation[pos[0], pos[1]] != 0:
+            if self.env.observation[pos[0], pos[1]] != 0:
                 return False
             return True
         return [valid([head[0], head[1]+1]), valid([head[0]-1, head[1]]), valid([head[0], head[1]-1]), valid([head[0]+1, head[1]])]
@@ -116,6 +117,7 @@ env.render()
 input_stack = InputStack(env)
 # input_stack.update(env)
 
+
 if env.config.load_model is not None:
     policy_net = torch.load('pre_trained_models/{}'.format(env.config.load_model)).to(device)
     target_net = torch.load('pre_trained_models/{}'.format(env.config.load_model)).to(device)
@@ -133,9 +135,29 @@ target_net.eval()
 optimizer = optim.RMSprop(policy_net.parameters())
 memory = ReplayMemory(env.config.REPLAY_MEMORY_CAP)
 
-if env.config.load_player2 is not None:
-    player2_net = torch.load('pre_trained_models/{}'.format(env.config.load_player2))
-
+# import pickle
+# import io
+# class MyCustomUnpickler(pickle.Unpickler):
+#     def find_class(self, module, name):
+#         if module == "__main__":
+#             module = "program"
+#         return super().find_class(module, name)
+# import copyreg
+# def pickle_Tron_DQN(obj):
+#     assert type(obj) is Tron_DQN
+#     return ng_train.Tron_DQN
+# copyreg.pickle(Tron_DQN, pickle_Tron_DQN)
+if env.config.load_opponent is not None:
+    print('load opponent model')
+    # player2_net = Tron_DQN(h=env.board_shape[0], w=env.board_shape[1], outputs=env.action_space.n, env=env).to(device)
+    # player2_net.load_state_dict(torch.load('pre_trained_models/{}'.format(env.config.load_opponent), map_location=torch.device('cpu')))
+    player2_net = torch.load('pre_trained_models/{}'.format(env.config.load_opponent), map_location=torch.device('cpu'))
+    # player2_net = unpickler.load('pre_trained_models/{}'.format(env.config.load_opponent), map_location=torch.device('cpu'))
+    # with open('pre_trained_models/{}'.format(env.config.load_opponent), 'rb') as f:
+        # unpickler = MyCustomUnpickler(f)
+        # player2_net = unpickler.load()
+        # player2_net = pickle.load(f)
+        # print(player2_net)
 
 def select_action(input_stack, env):
     sample = random.random()
@@ -148,7 +170,7 @@ def select_action(input_stack, env):
             # found, so we pick action with the larger expected reward.
             input_tensor = torch.tensor(input_stack.input_stack, device=device).unsqueeze(0)
             output = policy_net(input_tensor)
-            print('OUTPUT SHAPE', output.shape)
+            # print('OUTPUT SHAPE', output.shape)
             if env.config.with_adjustment:
                 valid_actions = np.array(input_stack.valid_actions(player_num=1))
                 adjustement = 500000 * (valid_actions - 1)
@@ -258,19 +280,20 @@ def evaluate(policy_net):
             action = test_select_action(policy_net, input_stack, env)
 
             if env.config.load_opponent is not None:
-                hard_coded_a = test_select_action(player2_net, input_stack, env).item()
+                hard_coded_a = test_select_action(player2_net, input_stack, env, is_opponent=True).item()
             else:
                 hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board==2)[0], prev_hard_coded_a, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
                 prev_hard_coded_a = hard_coded_a
 
             next_observation, reward, done, dictionary = env.step([action.item(), hard_coded_a])
 
-            if env.config.show:
-                env.render()
+            # if env.config.show:
+            env.render()
 
             input_stack.update(env)
 
             if done:
+                # utils.show_board(next_observation, dictionary['head_board'], env.config.cmap, delay=env.config.delay, filename='tmp.png')
                 player_reward = reward[0]
                 win_loss.append(player_reward > 0)
                 break
@@ -281,15 +304,33 @@ def evaluate(policy_net):
 
     return stats
 
-def test_select_action(policy_net, input_stack, env):
+def test_select_action(policy_net, input_stack, env, is_opponent=False):
     with torch.no_grad():
         # t.max(1) will return largest column value of each row.
         # second column on max result is index of where max element was
         # found, so we pick action with the larger expected reward.
-        input_tensor = torch.tensor(input_stack.input_stack, device=device).unsqueeze(0)
+        if is_opponent:
+            inp = input_stack.input_stack[:,:,::-1].copy()
+            inp[inp == 1] = -1
+            inp[inp == 2] = 1
+            inp[inp == -1] = 2
+            input_tensor = torch.tensor(inp, device=device).unsqueeze(0)
+        else:
+            input_tensor = torch.tensor(input_stack.input_stack, device=device).unsqueeze(0)
+
         output = policy_net(input_tensor)
+        # print(output)
+        if is_opponent:
+            # print(output)
+            tmp = output[0,0]
+            output[0,0] = output[0,2]
+            output[0,2] = tmp
+
         if env.config.with_adjustment:
-            valid_actions = np.array(input_stack.valid_actions(player_num=1))
+            if is_opponent:
+                valid_actions = np.array(input_stack.valid_actions(player_num=2))
+            else:
+                valid_actions = np.array(input_stack.valid_actions(player_num=1))
             adjustement = 500000 * (valid_actions - 1)
             output = output + torch.tensor(adjustement, device=device)
         output = output.max(1)[1].view(1, 1)
@@ -328,7 +369,7 @@ if __name__ == '__main__':
             action = select_action(input_stack, env)
 
             if env.config.load_opponent is not None:
-                hard_coded_a = test_select_action(player2_net, input_stack, env).item()
+                hard_coded_a = test_select_action(player2_net, input_stack, env, is_opponent=True).item()
             else:
                 hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board==2)[0], prev_hard_coded_a, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
                 prev_hard_coded_a = hard_coded_a
