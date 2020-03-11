@@ -34,11 +34,11 @@ env.render()
 input_stack = InputStack(env)
 # input_stack.update(env)
 
-policy_net_1 = Tron_DQN(h=env.board_shape[0], w=env.board_shape[1], outputs=env.action_space.n, env=env).to(device)
-target_net_1 = Tron_DQN(h=env.board_shape[0], w=env.board_shape[1], outputs=env.action_space.n, env=env).to(device)
+policy_net_1 = Tron_DQN(h=env.board_shape[0], w=env.board_shape[1], outputs=2*env.action_space.n, env=env).to(device)
+target_net_1 = Tron_DQN(h=env.board_shape[0], w=env.board_shape[1], outputs=2*env.action_space.n, env=env).to(device)
 
-policy_net_2 = Tron_DQN(h=env.board_shape[0], w=env.board_shape[1], outputs=env.action_space.n, env=env).to(device)
-target_net_2 = Tron_DQN(h=env.board_shape[0], w=env.board_shape[1], outputs=env.action_space.n, env=env).to(device)
+policy_net_2 = Tron_DQN(h=env.board_shape[0], w=env.board_shape[1], outputs=2*env.action_space.n, env=env).to(device)
+target_net_2 = Tron_DQN(h=env.board_shape[0], w=env.board_shape[1], outputs=2*env.action_space.n, env=env).to(device)
 
 policy_net_1 = policy_net_1.double()
 target_net_1 = target_net_1.double()
@@ -68,7 +68,7 @@ def select_action(policy_net, input_stack, env, player_num, iterate=False):
             # second column on max result is index of where max element was
             # found, so we pick action with the larger expected reward.
             input_tensor = torch.tensor(input_stack.input_stack, device=device).unsqueeze(0)
-            output = policy_net(input_tensor)
+            output = policy_net(input_tensor)[:, :4]
             valid_actions = np.array(input_stack.valid_actions(player_num=player_num))
             adjustement = 500000000 * (valid_actions - 1)
             output = output + torch.tensor(adjustement, device=device)
@@ -124,8 +124,8 @@ def optimize_model(input_stack, env):
     # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
     # columns of actions taken. These are the actions which would've been taken
     # for each batch state according to policy_net
-    state_action_values_1 = policy_net_1(state_batch_1).gather(1, action_batch_1)
-    state_action_values_2 = policy_net_2(state_batch_2).gather(1, action_batch_2)
+    state_action_values_1 = policy_net_1(state_batch_1)
+    state_action_values_2 = policy_net_2(state_batch_2)
 
     # Compute V(s_{t+1}) for all next states.
     # Expected values of actions for non_final_next_states are computed based
@@ -134,6 +134,15 @@ def optimize_model(input_stack, env):
     # state value or 0 in case the state was final.
     output_1 = target_net_1(non_final_next_states_1)
     output_2 = target_net_1(non_final_next_states_2)
+
+    output_1 = output_1[:, :4]
+    output_2 = output_2[:, :4]
+
+    model_1_pred_action_of_2 = state_action_values_1[:, 4:]
+    model_2_pred_action_of_1 = state_action_values_2[:, 4:]
+
+    state_action_values_1 = state_action_values_1[:, :4].gather(1, action_batch_1)
+    state_action_values_2 = state_action_values_2[:, :4].gather(1, action_batch_2)
 
     def batch_valid_actions(player_num, non_final_next_states, env):
         def valid(pos, obs):
@@ -167,15 +176,21 @@ def optimize_model(input_stack, env):
     next_state_values_2 = torch.zeros(env.config.BATCH_SIZE, device=device).double()
     next_state_values_2[non_final_mask_2] = output_2.max(1)[0].detach()
 
+    model_1_taken_action_of_2 = output_2.max(1)[1].detach()
+    model_2_taken_action_of_1 = output_1.max(1)[1].detach()
+
     # next_state_values[non_final_mask] = target_net(non_final_next_states).max(1)[0].detach()
 
     # Compute the expected Q values
     expected_state_action_values_1 = (next_state_values_1 * env.config.GAMMA) + reward_batch_1[:, 0]
     expected_state_action_values_2 = (next_state_values_2 * env.config.GAMMA) + reward_batch_2[:, 1]
 
+
     # Compute Huber loss
     loss = F.smooth_l1_loss(state_action_values_1, expected_state_action_values_1.unsqueeze(1)) + \
-           F.smooth_l1_loss(state_action_values_2, expected_state_action_values_2.unsqueeze(1))
+           F.smooth_l1_loss(state_action_values_2, expected_state_action_values_2.unsqueeze(1)) + \
+           nn.CrossEntropyLoss()(model_1_pred_action_of_2, model_1_taken_action_of_2) + \
+           nn.CrossEntropyLoss()(model_2_pred_action_of_1, model_2_taken_action_of_1)
 
     # Optimize the model
     optimizer.zero_grad()
@@ -204,8 +219,8 @@ def evaluate(policy_net_1, policy_net_2):
         print('Starting episode:', e)
         while True:
             # Select and perform an action
-            action_1 = select_action(policy_net_1, input_stack, env, player_num=1, iterate=False)
-            action_2 = select_action(policy_net_2, input_stack, env, player_num=2, iterate=True)
+            action_1 = test_select_action(policy_net_1, input_stack, env, player_num=1, iterate=False)
+            action_2 = test_select_action(policy_net_2, input_stack, env, player_num=2, iterate=True)
             hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board == 3)[0], prev_hard_coded_a,
                                              env.config.board_shape, env.action_space, eps=env.config.hcp_eps)
             hard_coded_b = hard_coded_policy(env.observation, np.argwhere(env.head_board == 4)[0], prev_hard_coded_b,
@@ -239,7 +254,7 @@ def test_select_action(policy_net, input_stack, env, player_num):
         # second column on max result is index of where max element was
         # found, so we pick action with the larger expected reward.
         input_tensor = torch.tensor(input_stack.input_stack, device=device).unsqueeze(0)
-        output = policy_net(input_tensor)
+        output = policy_net(input_tensor)[:, :4]
         valid_actions = np.array(input_stack.valid_actions(player_num=player_num))
         adjustement = 500000000 * (valid_actions - 1)
         output = output + torch.tensor(adjustement, device=device)
