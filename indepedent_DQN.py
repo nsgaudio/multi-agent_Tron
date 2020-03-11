@@ -70,7 +70,7 @@ def select_action(policy_net, input_stack, env, player_num, iterate=False):
             input_tensor = torch.tensor(input_stack.input_stack, device=device).unsqueeze(0)
             output = policy_net(input_tensor)
             valid_actions = np.array(input_stack.valid_actions(player_num=player_num))
-            adjustement = 500000000 * (valid_actions - 1)
+            adjustement = np.finfo(float).max * (valid_actions - 1)
             output = output + torch.tensor(adjustement, device=device)
             output = output.max(1)[1].view(1, 1)
             return output
@@ -157,12 +157,12 @@ def optimize_model(input_stack, env):
     valid_actions_1 = batch_valid_actions(player_num=1, non_final_next_states=non_final_next_states_1, env=env)
     valid_actions_2 = batch_valid_actions(player_num=2, non_final_next_states=non_final_next_states_2, env=env)
 
-    adjustement = 500000 * (valid_actions_1 - 1)
+    adjustement = np.finfo(float).max * (valid_actions_1 - 1)
     output_1 = output_1 + torch.tensor(adjustement, device=device)
     next_state_values_1 = torch.zeros(env.config.BATCH_SIZE, device=device).double()
     next_state_values_1[non_final_mask_1] = output_1.max(1)[0].detach()
 
-    adjustement = 500000 * (valid_actions_2 - 1)
+    adjustement = np.finfo(float).max * (valid_actions_2 - 1)
     output_2 = output_2 + torch.tensor(adjustement, device=device)
     next_state_values_2 = torch.zeros(env.config.BATCH_SIZE, device=device).double()
     next_state_values_2[non_final_mask_2] = output_2.max(1)[0].detach()
@@ -241,7 +241,7 @@ def test_select_action(policy_net, input_stack, env, player_num):
         input_tensor = torch.tensor(input_stack.input_stack, device=device).unsqueeze(0)
         output = policy_net(input_tensor)
         valid_actions = np.array(input_stack.valid_actions(player_num=player_num))
-        adjustement = 500000000 * (valid_actions - 1)
+        adjustement = np.finfo(float).max * (valid_actions - 1)
         output = output + torch.tensor(adjustement, device=device)
         output = output.max(1)[1].view(1, 1)
         return output
