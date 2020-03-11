@@ -14,7 +14,7 @@ def evaluate(policy_net_1, policy_net_2):
     player_2_win = []
     team_win = []
 
-    for e in range(1):
+    for e in range(1000):
         # Initialize the environment and state
         env.reset()
         input_stack.__init__(env)
@@ -36,6 +36,57 @@ def evaluate(policy_net_1, policy_net_2):
                 [action_1.item(), action_2.item(), hard_coded_a, hard_coded_b])
 
             input_stack.update(env)
+
+            if done:
+                player_1_rewards.append(reward[0])
+                player_2_rewards.append(reward[1])
+                team_rewards.append(reward[0] + reward[1])
+                player_1_win.append(reward[0] > 0)
+                player_2_win.append(reward[1] > 0)
+                team_win.append((reward[0] > 0) or (reward[1] > 0))
+                break
+
+            env.render()
+
+    stats = [np.mean(player_1_rewards), np.std(player_1_rewards), np.mean(player_2_rewards), np.std(player_2_rewards),
+             np.mean(team_rewards), np.std(team_rewards), np.sum(player_1_win), np.sum(player_2_win), np.sum(team_win)]
+
+    return stats
+
+def evaluate_hard():
+    player_1_rewards = []
+    player_2_rewards = []
+    team_rewards = []
+    player_1_win = []
+    player_2_win = []
+    team_win = []
+
+    for e in range(1000):
+        # Initialize the environment and state
+        env.reset()
+        input_stack.__init__(env)
+        prev_action_1 = 1
+        prev_action_2 = 1
+        prev_hard_coded_a = 1  # players init to up
+        prev_hard_coded_b = 1  # players init to up
+        print('Starting episode:', e)
+        while True:
+            # Select and perform an action
+            action_1 = hard_coded_policy(env.observation, np.argwhere(env.head_board == 1)[0], prev_action_1,
+                                             env.config.board_shape, env.action_space, eps=env.config.hcp_eps)
+            action_2 = hard_coded_policy(env.observation, np.argwhere(env.head_board == 2)[0], prev_action_2,
+                                             env.config.board_shape, env.action_space, eps=env.config.hcp_eps)
+            hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board == 3)[0], prev_hard_coded_a,
+                                             env.config.board_shape, env.action_space, eps=env.config.hcp_eps)
+            hard_coded_b = hard_coded_policy(env.observation, np.argwhere(env.head_board == 4)[0], prev_hard_coded_b,
+                                             env.config.board_shape, env.action_space, eps=env.config.hcp_eps)
+
+            prev_action_1 = action_1
+            prev_action_2 = action_2
+            prev_hard_coded_a = hard_coded_a
+            prev_hard_coded_b = hard_coded_b
+            next_observation, reward, done, dictionary = env.step(
+                [action_1, action_2, hard_coded_a, hard_coded_b])
 
             if done:
                 player_1_rewards.append(reward[0])
@@ -135,8 +186,9 @@ for i in range(0, len(models), 2):
     model_2 = models[i+1]
     policy_net_1 = torch.load(os.path.join(model_dir, model_1), map_location=torch.device('cpu'))
     policy_net_2 = torch.load(os.path.join(model_dir, model_2), map_location=torch.device('cpu'))
-    stats_list.append(evaluate(policy_net_1, policy_net_2))    
+    #stats_list.append(evaluate(policy_net_1, policy_net_2))
+    stats_list.append(evaluate_hard())
 
 #plot(stats_list)
-
+print(stats_list)
     
