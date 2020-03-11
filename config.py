@@ -14,14 +14,14 @@ class Config():
         self.lengthen_every  = 1
 
         # Visualization
-        self.show            = False
+        self.show            = True
         self.colors          = ['white', 'red', 'blue', 'green', 'orange', 'purple']  # white is board color, others are cycles
         self.cmap            = colors.ListedColormap(self.colors[: self.num_players + 1])
-        # self.delay           = 0.25
-        self.delay           = 0.00025
+        self.delay           = 0.25
+        # self.delay           = 0.00025
         # other
         self.filename        = None
-        self.verbal          = False
+        self.verbal          = True
 
         # reward
         self.win             = 1.0
@@ -61,7 +61,7 @@ class Config():
         self.NUM_EPISODES            = 100000
 
         self.MODEL_EVAL_FREQUENCY    = 100
-        self.EVAL_EPISODE            = 100
+        self.EVAL_EPISODE            = 10
 
         self.with_adjustment         = True
 

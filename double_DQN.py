@@ -192,8 +192,8 @@ def evaluate(policy_net):
         while True:
             # Select and perform an action
             action = test_select_action(policy_net, input_stack, env, 1, 2)
-            a_1 = action.item() % env.action_space.n
-            a_2 = np.floor_divide(action.item(), env.action_space.n)
+            a_1 = np.floor_divide(action.item(), env.action_space.n)
+            a_2 = action.item() % env.action_space.n
 
             # print('column', a % 4)
             # print('row', np.floor_divide(a, 4))
@@ -239,12 +239,13 @@ def test_select_action(policy_net, input_stack, env, player_num_a, player_num_b)
         if env.config.with_adjustment:
             valid_actions_1 = np.array(input_stack.valid_actions(player_num=player_num_a))
             valid_actions_2 = np.array(input_stack.valid_actions(player_num=player_num_b))
-            valid_actions = np.outer(valid_actions_2, valid_actions_1) ###TODO####to check#########
+            valid_actions = np.outer(valid_actions_1, valid_actions_2) ###TODO####to check#########
             valid_actions = np.reshape(valid_actions, (np.square(env.action_space.n)))
             adjustement = 50000000000 * (valid_actions - 1)
             output = output + torch.tensor(adjustement, device=device)
             # print(valid_actions,output)
             # print('valid 1: {}\n valid 2: {}'.format(valid_actions_1, valid_actions_2))
+            # print(valid_actions)
         output = output.max(1)[1].view(1, 1)
         return output
 
