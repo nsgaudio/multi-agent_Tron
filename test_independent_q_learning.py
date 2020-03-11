@@ -4,7 +4,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import utils
 
-from indepedent_DQN import test_select_action, hard_coded_policy, env, Tron_DQN, input_stack
+from env import EnvTeam
+from indepedent_DQN import test_select_action, hard_coded_policy, Tron_DQN, input_stack
+
+env = EnvTeam()
 
 def evaluate(policy_net_1, policy_net_2):
     player_1_rewards = []
@@ -186,8 +189,8 @@ for i in range(0, len(models), 2):
     model_2 = models[i+1]
     policy_net_1 = torch.load(os.path.join(model_dir, model_1), map_location=torch.device('cpu'))
     policy_net_2 = torch.load(os.path.join(model_dir, model_2), map_location=torch.device('cpu'))
-    #stats_list.append(evaluate(policy_net_1, policy_net_2))
-    stats_list.append(evaluate_hard())
+    stats_list.append(evaluate(policy_net_1, policy_net_2))
+    #stats_list.append(evaluate_hard())
 
 #plot(stats_list)
 print(stats_list)

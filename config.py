@@ -17,7 +17,7 @@ class Config():
         self.show            = True
         self.colors          = ['white', 'red', 'blue', 'green', 'orange', 'purple']  # white is board color, others are cycles
         self.cmap            = colors.ListedColormap(self.colors[: self.num_players + 1])
-        self.delay           = 0.25
+        self.delay           = .00025
         # self.delay           = 0.00025
         # other
         self.filename        = None
@@ -34,7 +34,7 @@ class Config():
             # Ex. input of env.step(actions), actions = [a1, a2, a3, a4], a in {0,1,2,3}
             # a1, a2 are actions in the same team; a3, a4 are actions in the other team
             # assume a1, a2 are from agent(s), a3, a4 are from computer
-        self.indep_Q = False
+        self.indep_Q = True
             # False: 1 agent controls 2 players
             # True : 1 agent controls 1 players, a total of 2 agents
 
