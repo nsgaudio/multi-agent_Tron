@@ -6,7 +6,7 @@ class Config():
         ########## Env config #########
 
         # init
-        self.board_shape     = [40, 40] # y, x
+        self.board_shape     = [21, 21] # y, x
         self.num_players     = 4
         
         # snake dynamics
@@ -17,7 +17,7 @@ class Config():
         self.show            = True
         self.colors          = ['white', 'red', 'blue', 'green', 'orange', 'purple']  # white is board color, others are cycles
         self.cmap            = colors.ListedColormap(self.colors[: self.num_players + 1])
-        self.delay           = 0.25
+        self.delay           = 10
         # self.delay           = 0.00025
         # other
         self.filename        = None

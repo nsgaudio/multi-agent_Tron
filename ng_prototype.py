@@ -18,10 +18,14 @@ from fu_tron_env_v2 import ActionSpace, EnvTest, hard_coded_policy
 from config import *
 # from test import evaluate, plot
 
-# a = np.array([0, 0, 1, 0])
-# b = np.array([1, 0, 1, 1])
+a = np.array([0, 0, 1, 0])
+b = np.array([1, 0, 1, 1])
 
-# c = np.outer(a, b)
+
+a = np.array([1, 1, 0, 1])
+b = np.array([0, 1, 1, 1])
+
+c = np.outer(a, b)
 
 # print(a)
 # print(b)
@@ -31,7 +35,8 @@ from config import *
 # print('d shape', d.shape)
 
 # e = np.reshape(d, (4, 4))
-# d2 = np.reshape(d, (16))
+# c = np.reshape(c, (16))
+# print(c)
 
 # print('d2 shape', d2.shape)
 
