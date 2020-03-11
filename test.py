@@ -18,8 +18,6 @@ import torch.nn.functional as F
 import torchvision.transforms as T
 
 from config import *
-# from ng_train import evaluate
-from double_DQN import evaluate
 
 class Tron_DQN(nn.Module):
     def __init__(self, h, w, outputs, env):
@@ -48,7 +46,9 @@ class Tron_DQN(nn.Module):
         x = F.relu(self.bn3(self.conv3(x)))
         return self.head(x.view(x.size(0), -1))
 
-# from ng_train import Tron_DQN
+from ng_train import evaluate
+# from double_DQN import evaluate
+from ng_train import Tron_DQN
 
 if __name__ == '__main__':
     num = 50000
@@ -58,8 +58,8 @@ if __name__ == '__main__':
 
         print('{}th model'.format(i))
 
-        policy_net = torch.load('models/doubleDQN/models/episode_{}.pth'.format(num), map_location=torch.device('cpu')) # placeholder
-        # policy_net = torch.load('models/neg_tr/models/episode_{}.pth'.format(num), map_location=torch.device('cpu')) # placeholder
+        # policy_net = torch.load('models/doubleDQN/models/episode_{}.pth'.format(num), map_location=torch.device('cpu')) # placeholder
+        policy_net = torch.load('models/neg_tr/models/episode_{}.pth'.format(num), map_location=torch.device('cpu')) # placeholder
         # policy_net = torch.load('models/zero_tr/models/episode_{}.pth'.format(num), map_location=torch.device('cpu')) # placeholder
         # policy_net = torch.load('models/pos_tr/models/episode_{}.pth'.format(num), map_location=torch.device('cpu')) # placeholder        stats = evaluate(policy_net)
         stats = evaluate(policy_net)

@@ -173,7 +173,7 @@ def select_action(input_stack, env):
             # print('OUTPUT SHAPE', output.shape)
             if env.config.with_adjustment:
                 valid_actions = np.array(input_stack.valid_actions(player_num=1))
-                adjustement = 500000 * (valid_actions - 1)
+                adjustement = np.inf * (valid_actions - 1)
                 output = output + torch.tensor(adjustement, device=device)
             # print('OUTPUT SHAPE', output.shape)
             output = output.max(1)[1].view(1, 1)
@@ -246,7 +246,7 @@ def optimize_model(input_stack, env):
 
     if env.config.with_adjustment:
         valid_actions = batch_valid_actions(player_num=1, non_final_next_states=non_final_next_states, env=env)
-        adjustement = 500000 * (valid_actions - 1)
+        adjustement = np.inf * (valid_actions - 1)
         output = output + torch.tensor(adjustement, device=device)
 
     next_state_values[non_final_mask] = output.max(1)[0].detach()
@@ -331,7 +331,7 @@ def test_select_action(policy_net, input_stack, env, is_opponent=False):
                 valid_actions = np.array(input_stack.valid_actions(player_num=2))
             else:
                 valid_actions = np.array(input_stack.valid_actions(player_num=1))
-            adjustement = 500000 * (valid_actions - 1)
+            adjustement = np.inf * (valid_actions - 1)
             output = output + torch.tensor(adjustement, device=device)
         output = output.max(1)[1].view(1, 1)
         return output
