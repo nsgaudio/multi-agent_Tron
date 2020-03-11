@@ -192,8 +192,8 @@ def evaluate(policy_net):
         while True:
             # Select and perform an action
             action = test_select_action(policy_net, input_stack, env, 1, 2)
-            a_1 = action.item() % env.action_space.n
-            a_2 = np.floor_divide(action.item(), env.action_space.n)
+            a_1 = np.floor_divide(action.item(), env.action_space.n)
+            a_2 = action.item() % env.action_space.n
 
             # print('column', a % 4)
             # print('row', np.floor_divide(a, 4))
@@ -201,8 +201,8 @@ def evaluate(policy_net):
 
             if env.config.load_opponent is not None:
                 opponent_action = test_select_action(opponent_net, input_stack, env, 3, 4)
-                a_3 = opponent_action.item() % env.action_space.n
-                a_4 = np.floor_divide(opponent_action.item(), env.action_space.n)
+                a_3 = np.floor_divide(opponent_action.item(), env.action_space.n)
+                a_4 = opponent_action.item() % env.action_space.n
             else:
                 a_3 = hard_coded_policy(env.observation, np.argwhere(env.head_board==3)[0], prev_a_3, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
                 a_4 = hard_coded_policy(env.observation, np.argwhere(env.head_board==4)[0], prev_a_4, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
@@ -280,13 +280,13 @@ if __name__ == '__main__':
         while True:
             # Select and perform an action
             action = test_select_action(policy_net, input_stack, env, 1, 2)
-            a_1 = action.item() % env.action_space.n
-            a_2 = np.floor_divide(action.item(), env.action_space.n)
+            a_1 = np.floor_divide(action.item(), env.action_space.n)
+            a_2 = action.item() % env.action_space.n
 
             if env.config.load_opponent is not None:
                 opponent_action = test_select_action(opponent_net, input_stack, env, 3, 4)
-                a_3 = opponent_action.item() % env.action_space.n
-                a_4 = np.floor_divide(opponent_action.item(), env.action_space.n)
+                a_3 = np.floor_divide(opponent_action.item(), env.action_space.n)
+                a_4 = opponent_action.item() % env.action_space.n
             else:
                 a_3 = hard_coded_policy(env.observation, np.argwhere(env.head_board==3)[0], prev_a_3, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
                 a_4 = hard_coded_policy(env.observation, np.argwhere(env.head_board==4)[0], prev_a_4, env.config.board_shape,  env.action_space, eps=env.config.hcp_eps)
