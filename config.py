@@ -58,7 +58,7 @@ class Config():
         self.KERNEL_SIZE             = 5
         self.STRIDE                  = 2
 
-        self.NUM_EPISODES            = 500000
+        self.NUM_EPISODES            = 100000
 
         self.MODEL_EVAL_FREQUENCY    = 100
         self.EVAL_EPISODE            = 100
