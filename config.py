@@ -7,14 +7,14 @@ class Config():
 
         # init
         self.board_shape     = [40, 40] # y, x
-        self.num_players     = 2
+        self.num_players     = 4
         
         # snake dynamics
         self.init_len        = 5
         self.lengthen_every  = 1
 
         # Visualization
-        self.show            = True
+        self.show            = False
         self.colors          = ['white', 'red', 'blue', 'green', 'orange', 'purple']  # white is board color, others are cycles
         self.cmap            = colors.ListedColormap(self.colors[: self.num_players + 1])
         self.delay           = .00025
@@ -61,12 +61,12 @@ class Config():
         self.NUM_EPISODES            = 100000
 
         self.MODEL_EVAL_FREQUENCY    = 100
-        self.EVAL_EPISODE            = 100
+        self.EVAL_EPISODE            = 10
 
         self.with_adjustment         = True
 
         # None or 'name.pth'
         # self.load_model              = 'exp3_116k.pth'  # start training with pre-trained model
         self.load_model              = None  # start training with pre-trained model
-        self.load_opponent            = 'exp3_116k.pth'  # use pre-trained model instead of a hard-coded policy
-        # self.load_opponent           = None  # use pre-trained model instead of a hard-coded policy
+        self.load_opponent            = None  # use pre-trained model instead of a hard-coded policy
+        # self.load_opponent           = 'neg.pth'  # use pre-trained model instead of a hard-coded policy

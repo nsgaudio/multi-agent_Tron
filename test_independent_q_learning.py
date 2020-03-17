@@ -121,7 +121,8 @@ def plot(stats_list):
 
     episode = np.arange(1, len(avg_reward_1) + 1)
 
-    utils.cond_mkdir('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots')
+    # utils.cond_mkdir('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots')
+
 
     plt.figure()
     plt.plot(episode, avg_reward_1)
@@ -132,7 +133,8 @@ def plot(stats_list):
     plt.xlabel('Evaluation #')
     plt.ylabel('Reward')
     plt.title('Average Reward of Player 1')
-    plt.savefig('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots/reward_1')
+    # plt.savefig('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots/reward_1')
+    plt.savefig('plots/reward_1')
 
     plt.figure()
     plt.plot(episode, avg_reward_2)
@@ -143,7 +145,8 @@ def plot(stats_list):
     plt.xlabel('Evaluation #')
     plt.ylabel('Reward')
     plt.title('Average Reward of Player 2')
-    plt.savefig('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots/reward_2')
+    # plt.savefig('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots/reward_2')
+    plt.savefig('plots/reward_2')
 
     plt.figure()
     plt.plot(episode, avg_reward_team)
@@ -154,30 +157,35 @@ def plot(stats_list):
     plt.xlabel('Evaluation #')
     plt.ylabel('Reward')
     plt.title('Average Reward of Team')
-    plt.savefig('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots/reward_team')
+    # plt.savefig('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots/reward_team')
+    plt.savefig('plots/reward_team')
 
     plt.figure()
     plt.plot(episode, 100 * num_wins_1 / env.config.EVAL_EPISODE)
     plt.xlabel('Evaluation #')
     plt.ylabel('Win (%)')
     plt.title('Win % of Player 1')
-    plt.savefig('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots/wins_1')
+    # plt.savefig('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots/wins_1')
+    plt.savefig('plots/wins_1')
 
     plt.figure()
     plt.plot(episode, 100 * num_wins_2 / env.config.EVAL_EPISODE)
     plt.xlabel('Evaluation #')
     plt.ylabel('Win (%)')
     plt.title('Win % of Player 2')
-    plt.savefig('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots/wins_2')
+    # plt.savefig('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots/wins_2')
+    plt.savefig('plots/wins_2')
 
     plt.figure()
     plt.plot(episode, 100 * num_wins_team / env.config.EVAL_EPISODE)
     plt.xlabel('Evaluation #')
     plt.ylabel('Win (%)')
     plt.title('Win % of Team')
-    plt.savefig('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots/wins_team')
+    # plt.savefig('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots/wins_team')
+    plt.savefig('plots/wins_team')
 
-model_dir = 'C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/models'
+# model_dir = 'C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/models'
+model_dir = 'models/indp_DQN'
 
 models = os.listdir(model_dir)
 stats_list = []

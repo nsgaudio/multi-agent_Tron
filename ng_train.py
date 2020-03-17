@@ -135,29 +135,15 @@ target_net.eval()
 optimizer = optim.RMSprop(policy_net.parameters())
 memory = ReplayMemory(env.config.REPLAY_MEMORY_CAP)
 
-# import pickle
-# import io
-# class MyCustomUnpickler(pickle.Unpickler):
-#     def find_class(self, module, name):
-#         if module == "__main__":
-#             module = "program"
-#         return super().find_class(module, name)
-# import copyreg
-# def pickle_Tron_DQN(obj):
-#     assert type(obj) is Tron_DQN
-#     return ng_train.Tron_DQN
-# copyreg.pickle(Tron_DQN, pickle_Tron_DQN)
+
 if env.config.load_opponent is not None:
     print('load opponent model')
-    # player2_net = Tron_DQN(h=env.board_shape[0], w=env.board_shape[1], outputs=env.action_space.n, env=env).to(device)
-    # player2_net.load_state_dict(torch.load('pre_trained_models/{}'.format(env.config.load_opponent), map_location=torch.device('cpu')))
-    player2_net = torch.load('pre_trained_models/{}'.format(env.config.load_opponent), map_location=torch.device('cpu'))
-    # player2_net = unpickler.load('pre_trained_models/{}'.format(env.config.load_opponent), map_location=torch.device('cpu'))
-    # with open('pre_trained_models/{}'.format(env.config.load_opponent), 'rb') as f:
-        # unpickler = MyCustomUnpickler(f)
-        # player2_net = unpickler.load()
-        # player2_net = pickle.load(f)
-        # print(player2_net)
+    
+    if ~torch.cuda.is_available():
+        player2_net = torch.load('pre_trained_models/{}'.format(env.config.load_opponent), map_location=torch.device('cpu'))
+    else:
+        player2_net = torch.load('pre_trained_models/{}'.format(env.config.load_opponent))
+    
 
 def select_action(input_stack, env):
     sample = random.random()
@@ -254,6 +240,7 @@ def optimize_model(input_stack, env):
 
     # Compute the expected Q values
     expected_state_action_values = (next_state_values * env.config.GAMMA) + reward_batch[:, 0]
+    print('reward_batch shape {}'.format(reward_batch.shape))
 
     # Compute Huber loss
     loss = F.smooth_l1_loss(state_action_values, expected_state_action_values.unsqueeze(1))
