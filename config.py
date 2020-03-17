@@ -21,7 +21,7 @@ class Config():
         # self.delay           = 0.00025
         # other
         self.filename        = None
-        self.verbal          = True
+        self.verbal          = False
 
         # reward
         self.win             = 1.0
@@ -34,7 +34,7 @@ class Config():
             # Ex. input of env.step(actions), actions = [a1, a2, a3, a4], a in {0,1,2,3}
             # a1, a2 are actions in the same team; a3, a4 are actions in the other team
             # assume a1, a2 are from agent(s), a3, a4 are from computer
-        self.indep_Q = True
+        self.indep_Q = False
             # False: 1 agent controls 2 players
             # True : 1 agent controls 1 players, a total of 2 agents
 
@@ -68,5 +68,5 @@ class Config():
         # None or 'name.pth'
         # self.load_model              = 'exp3_116k.pth'  # start training with pre-trained model
         self.load_model              = None  # start training with pre-trained model
-        self.load_opponent            = None  # use pre-trained model instead of a hard-coded policy
-        # self.load_opponent           = 'neg.pth'  # use pre-trained model instead of a hard-coded policy
+        # self.load_opponent            = 'exp3_116k.pth'  # use pre-trained model instead of a hard-coded policy
+        self.load_opponent           = None  # use pre-trained model instead of a hard-coded policy

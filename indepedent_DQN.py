@@ -204,8 +204,8 @@ def evaluate(policy_net_1, policy_net_2):
         print('Starting episode:', e)
         while True:
             # Select and perform an action
-            action_1 = select_action(policy_net_1, input_stack, env, player_num=1, iterate=False)
-            action_2 = select_action(policy_net_2, input_stack, env, player_num=2, iterate=True)
+            action_1 = test_select_action(policy_net_1, input_stack, env, player_num=1)
+            action_2 = test_select_action(policy_net_2, input_stack, env, player_num=2)
             hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board == 3)[0], prev_hard_coded_a,
                                              env.config.board_shape, env.action_space, eps=env.config.hcp_eps)
             hard_coded_b = hard_coded_policy(env.observation, np.argwhere(env.head_board == 4)[0], prev_hard_coded_b,
