@@ -1,7 +1,3 @@
-"""Utilities
-"""
-# pylint: disable=no-member
-
 import collections
 import math
 import os
@@ -28,6 +24,10 @@ def show_board(board, head, cmap, delay=0.025, filename=None):
     
     plt.clf()
 
+"""
+    modified from: https://github.com/grantjenks/free-python-games 
+    (https://github.com/grantjenks/free-python-games/blob/master/freegames/utils.py)
+"""
 class vector(collections.Sequence):
     """Two-dimensional vector.
 
