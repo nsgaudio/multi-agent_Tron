@@ -7,6 +7,10 @@ import utils
 from env import EnvTeam
 from indepedent_DQN import test_select_action, hard_coded_policy, Tron_DQN, input_stack
 
+# from hyper_DQN import test_select_action, input_stack
+# from env import hard_coded_policy
+
+
 env = EnvTeam()
 
 def evaluate(policy_net_1, policy_net_2):
@@ -17,7 +21,7 @@ def evaluate(policy_net_1, policy_net_2):
     player_2_win = []
     team_win = []
 
-    for e in range(1000):
+    for e in range(1):
         # Initialize the environment and state
         env.reset()
         input_stack.__init__(env)
@@ -47,6 +51,7 @@ def evaluate(policy_net_1, policy_net_2):
                 player_1_win.append(reward[0] > 0)
                 player_2_win.append(reward[1] > 0)
                 team_win.append((reward[0] > 0) or (reward[1] > 0))
+                utils.show_board(next_observation, dictionary['head_board'], env.config.cmap, delay=env.config.delay, filename='tmp.png')
                 break
 
             env.render()
@@ -121,7 +126,8 @@ def plot(stats_list):
 
     episode = np.arange(1, len(avg_reward_1) + 1)
 
-    utils.cond_mkdir('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots')
+    # utils.cond_mkdir('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots')
+
 
     plt.figure()
     plt.plot(episode, avg_reward_1)
@@ -132,7 +138,8 @@ def plot(stats_list):
     plt.xlabel('Evaluation #')
     plt.ylabel('Reward')
     plt.title('Average Reward of Player 1')
-    plt.savefig('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots/reward_1')
+    # plt.savefig('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots/reward_1')
+    plt.savefig('plots/reward_1')
 
     plt.figure()
     plt.plot(episode, avg_reward_2)
@@ -143,7 +150,8 @@ def plot(stats_list):
     plt.xlabel('Evaluation #')
     plt.ylabel('Reward')
     plt.title('Average Reward of Player 2')
-    plt.savefig('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots/reward_2')
+    # plt.savefig('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots/reward_2')
+    plt.savefig('plots/reward_2')
 
     plt.figure()
     plt.plot(episode, avg_reward_team)
@@ -154,30 +162,36 @@ def plot(stats_list):
     plt.xlabel('Evaluation #')
     plt.ylabel('Reward')
     plt.title('Average Reward of Team')
-    plt.savefig('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots/reward_team')
+    # plt.savefig('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots/reward_team')
+    plt.savefig('plots/reward_team')
 
     plt.figure()
     plt.plot(episode, 100 * num_wins_1 / env.config.EVAL_EPISODE)
     plt.xlabel('Evaluation #')
     plt.ylabel('Win (%)')
     plt.title('Win % of Player 1')
-    plt.savefig('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots/wins_1')
+    # plt.savefig('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots/wins_1')
+    plt.savefig('plots/wins_1')
 
     plt.figure()
     plt.plot(episode, 100 * num_wins_2 / env.config.EVAL_EPISODE)
     plt.xlabel('Evaluation #')
     plt.ylabel('Win (%)')
     plt.title('Win % of Player 2')
-    plt.savefig('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots/wins_2')
+    # plt.savefig('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots/wins_2')
+    plt.savefig('plots/wins_2')
 
     plt.figure()
     plt.plot(episode, 100 * num_wins_team / env.config.EVAL_EPISODE)
     plt.xlabel('Evaluation #')
     plt.ylabel('Win (%)')
     plt.title('Win % of Team')
-    plt.savefig('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots/wins_team')
+    # plt.savefig('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots/wins_team')
+    plt.savefig('plots/wins_team')
 
-model_dir = 'C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/models'
+# model_dir = 'C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/models'
+model_dir = 'models/indp_DQN'
+# model_dir = 'models/hyper_Q'
 
 models = os.listdir(model_dir)
 stats_list = []

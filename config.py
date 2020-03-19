@@ -61,12 +61,12 @@ class Config():
         self.NUM_EPISODES            = 100000
 
         self.MODEL_EVAL_FREQUENCY    = 100
-        self.EVAL_EPISODE            = 100
+        self.EVAL_EPISODE            = 1
 
         self.with_adjustment         = True
 
         # None or 'name.pth'
         # self.load_model              = 'exp3_116k.pth'  # start training with pre-trained model
         self.load_model              = None  # start training with pre-trained model
-        # self.load_opponent            = 'exp3_116k.pth'  # use pre-trained model instead of a hard-coded policy
+        # self.load_opponent            = 'neg.pth'  # use pre-trained model instead of a hard-coded policy
         self.load_opponent           = None  # use pre-trained model instead of a hard-coded policy

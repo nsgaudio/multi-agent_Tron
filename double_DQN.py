@@ -53,6 +53,10 @@ optimizer = optim.RMSprop(policy_net.parameters())
 memory = ReplayMemory(env.config.REPLAY_MEMORY_CAP)
 
 if env.config.load_opponent is not None:
+    print('load opponent model {}'.format(env.config.load_opponent))
+    if ~torch.cuda.is_available():
+        opponent_net = torch.load('pre_trained_models/{}'.format(env.config.load_opponent), map_location=torch.device('cpu'))
+    else:
         opponent_net = torch.load('pre_trained_models/{}'.format(env.config.load_opponent))
 
 def select_action(input_stack, env):
@@ -219,6 +223,7 @@ def evaluate(policy_net):
             input_stack.update(env)
 
             if done:
+                # utils.show_board(next_observation, dictionary['head_board'], env.config.cmap, delay=env.config.delay, filename='tmp.png')
                 player_reward = reward[0]
                 win_loss.append(player_reward > 0)
                 break

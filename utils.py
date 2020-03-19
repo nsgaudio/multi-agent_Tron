@@ -21,10 +21,12 @@ def show_board(board, head, cmap, delay=0.025, filename=None):
     
     plt.draw()
     plt.pause(delay)
-    plt.clf()
+    
 
     if filename is not None:
         plt.savefig(filename)
+    
+    plt.clf()
 
 class vector(collections.Sequence):
     """Two-dimensional vector.
