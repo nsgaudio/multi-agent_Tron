@@ -14,7 +14,7 @@ class Config():
         self.lengthen_every  = 1
 
         # Visualization
-        self.show            = False
+        self.show            = True
         self.colors          = ['white', 'red', 'blue', 'green', 'orange', 'purple']  # white is board color, others are cycles
         self.cmap            = colors.ListedColormap(self.colors[: self.num_players + 1])
         self.delay           = .00025
@@ -61,12 +61,12 @@ class Config():
         self.NUM_EPISODES            = 100000
 
         self.MODEL_EVAL_FREQUENCY    = 100
-        self.EVAL_EPISODE            = 10
+        self.EVAL_EPISODE            = 1
 
         self.with_adjustment         = True
 
         # None or 'name.pth'
         # self.load_model              = 'exp3_116k.pth'  # start training with pre-trained model
         self.load_model              = None  # start training with pre-trained model
-        # self.load_opponent            = 'exp3_116k.pth'  # use pre-trained model instead of a hard-coded policy
+        # self.load_opponent            = 'neg.pth'  # use pre-trained model instead of a hard-coded policy
         self.load_opponent           = None  # use pre-trained model instead of a hard-coded policy

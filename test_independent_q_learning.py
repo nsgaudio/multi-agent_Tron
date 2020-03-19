@@ -7,6 +7,10 @@ import utils
 from env import EnvTeam
 from indepedent_DQN import test_select_action, hard_coded_policy, Tron_DQN, input_stack
 
+# from hyper_DQN import test_select_action, input_stack
+# from env import hard_coded_policy
+
+
 env = EnvTeam()
 
 def evaluate(policy_net_1, policy_net_2):
@@ -17,7 +21,7 @@ def evaluate(policy_net_1, policy_net_2):
     player_2_win = []
     team_win = []
 
-    for e in range(1000):
+    for e in range(1):
         # Initialize the environment and state
         env.reset()
         input_stack.__init__(env)
@@ -47,6 +51,7 @@ def evaluate(policy_net_1, policy_net_2):
                 player_1_win.append(reward[0] > 0)
                 player_2_win.append(reward[1] > 0)
                 team_win.append((reward[0] > 0) or (reward[1] > 0))
+                utils.show_board(next_observation, dictionary['head_board'], env.config.cmap, delay=env.config.delay, filename='tmp.png')
                 break
 
             env.render()
@@ -186,6 +191,7 @@ def plot(stats_list):
 
 # model_dir = 'C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/models'
 model_dir = 'models/indp_DQN'
+# model_dir = 'models/hyper_Q'
 
 models = os.listdir(model_dir)
 stats_list = []
