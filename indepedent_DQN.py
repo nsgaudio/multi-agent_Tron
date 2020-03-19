@@ -20,8 +20,6 @@ from config import *
 import utils
 from ng_train import ReplayMemory, InputStack, Tron_DQN
 
-# from test import evaluate, plot, test_select_action
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 
@@ -32,7 +30,6 @@ env.reset()
 env.render()
 
 input_stack = InputStack(env)
-# input_stack.update(env)
 
 policy_net_1 = Tron_DQN(h=env.board_shape[0], w=env.board_shape[1], outputs=env.action_space.n, env=env).to(device)
 target_net_1 = Tron_DQN(h=env.board_shape[0], w=env.board_shape[1], outputs=env.action_space.n, env=env).to(device)
@@ -104,15 +101,9 @@ def optimize_model(input_stack, env):
     non_final_mask_2 = torch.tensor(tuple(map(lambda s: s is not None,
                                               batch_2.next_state)), device=device, dtype=torch.bool)
 
-    # non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
-    # state_batch = torch.cat(batch.state)
-    # action_batch = torch.cat(batch.action)
-    # reward_batch = torch.cat(batch.reward)
-
     non_final_next_states_1 = torch.cat([torch.tensor(s, device=device) for s in batch_1.next_state if s is not None])
     non_final_next_states_2 = torch.cat([torch.tensor(s, device=device) for s in batch_2.next_state if s is not None])
 
-    # torch.tensor(input_stack.input_stack, device=device)
     state_batch_1 = torch.cat(batch_1.state)
     action_batch_1 = torch.cat(batch_1.action)
     reward_batch_1 = torch.cat(batch_1.reward)
@@ -166,8 +157,6 @@ def optimize_model(input_stack, env):
     output_2 = output_2 + torch.tensor(adjustement, device=device)
     next_state_values_2 = torch.zeros(env.config.BATCH_SIZE, device=device).double()
     next_state_values_2[non_final_mask_2] = output_2.max(1)[0].detach()
-
-    # next_state_values[non_final_mask] = target_net(non_final_next_states).max(1)[0].detach()
 
     # Compute the expected Q values
     expected_state_action_values_1 = (next_state_values_1 * env.config.GAMMA) + reward_batch_1[:, 0]
@@ -233,13 +222,27 @@ def evaluate(policy_net_1, policy_net_2):
     return stats
 
 
-def test_select_action(policy_net, input_stack, env, player_num):
+def test_select_action(policy_net, input_stack, env, player_num, is_opponent=False):
     with torch.no_grad():
         # t.max(1) will return largest column value of each row.
         # second column on max result is index of where max element was
         # found, so we pick action with the larger expected reward.
-        input_tensor = torch.tensor(input_stack.input_stack, device=device).unsqueeze(0)
+        if is_opponent:
+            inp = input_stack.input_stack[:,:,::-1].copy()
+            inp[inp == 1] = -1
+            inp[inp == player_num] = 1
+            inp[inp == -1] = player_num
+            input_tensor = torch.tensor(inp, device=device).unsqueeze(0)
+        else:
+            input_tensor = torch.tensor(input_stack.input_stack, device=device).unsqueeze(0)
+
         output = policy_net(input_tensor)
+
+        if is_opponent:
+            tmp = output[0,0]
+            output[0,0] = output[0,2]
+            output[0,2] = tmp
+
         valid_actions = np.array(input_stack.valid_actions(player_num=player_num))
         adjustement = np.finfo(float).max * (valid_actions - 1)
         output = output + torch.tensor(adjustement, device=device)
@@ -351,14 +354,12 @@ if __name__ == '__main__':
             next_state = input_stack.input_stack
 
             # Store the transition in memory
-            # memory.push(torch.tensor(state, action, next_state, reward)
             memory_1.push(torch.tensor(state, device=device).unsqueeze(0), torch.tensor(action_1, device=device),
                         torch.tensor(next_state, device=device).unsqueeze(0), torch.tensor(reward, device=device))
 
             memory_2.push(torch.tensor(state, device=device).unsqueeze(0), torch.tensor(action_1, device=device),
                           torch.tensor(next_state, device=device).unsqueeze(0), torch.tensor(reward, device=device))
 
-            # print('THIS HAPPENS')
             # Perform one step of the optimization (on the target network)
             optimize_model(input_stack, env)
             if done:
@@ -382,4 +383,3 @@ if __name__ == '__main__':
     print('Complete')
     env.render()
     plot(stats_list)
-    # env.close()

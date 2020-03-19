@@ -19,6 +19,7 @@ import torchvision.transforms as T
 
 from config import *
 
+######### To fix import problem ############
 class Tron_DQN(nn.Module):
     def __init__(self, h, w, outputs, env):
         super(Tron_DQN, self).__init__()
@@ -46,6 +47,9 @@ class Tron_DQN(nn.Module):
         x = F.relu(self.bn3(self.conv3(x)))
         return self.head(x.view(x.size(0), -1))
 
+######### To fix import problem ############
+############################################
+
 # from ng_train import evaluate
 from double_DQN import evaluate
 from ng_train import Tron_DQN
@@ -61,32 +65,8 @@ if __name__ == '__main__':
         policy_net = torch.load('models/single_agent_multi_player/episode_{}.pth'.format(num), map_location=torch.device('cpu')) # placeholder
         # policy_net = torch.load('models/neg_pretrained/models/episode_{}.pth'.format(num), map_location=torch.device('cpu')) # placeholder
         # policy_net = torch.load('models/zero_pretrained/models/episode_{}.pth'.format(num), map_location=torch.device('cpu')) # placeholder
-        # policy_net = torch.load('models/pos_pretrained/models/episode_{}.pth'.format(num), map_location=torch.device('cpu')) # placeholder        stats = evaluate(policy_net)
+        # policy_net = torch.load('models/pos_pretrained/models/episode_{}.pth'.format(num), map_location=torch.device('cpu')) # placeholde
         stats = evaluate(policy_net)
         stats_list.append(stats)
         num += 500
         print(stats)
-
-    # plt.figure()
-    # avg_reward = np.array([stats[0] for stats in stats_list])
-    # std_reward = np.array([stats[1] for stats in stats_list])
-    # num_wins = np.array([stats[2] for stats in stats_list])
-    # num_loss = np.array([stats[3] for stats in stats_list])
-
-    # episode = np.linspace(500, 50000, 100)
-
-    # plt.plot(episode, avg_reward)
-    # reward_upper = avg_reward + std_reward
-    # reward_lower = avg_reward - std_reward
-    # plt.fill_between(episode, reward_lower, reward_upper, color='grey', alpha=.2,
-    #                  label=r'$\pm$ 1 std. dev.')
-    # plt.show()
-
-    # plt.plot(episode, num_wins)
-    # plt.show()
-    # plt.save('Average Reward')
-
-
-    
-
-    # print("neg:{};\nzero:{};\npos:{};".format(stats1,stats2, stats3))

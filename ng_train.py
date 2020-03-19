@@ -18,7 +18,6 @@ import torchvision.transforms as T
 from env import ActionSpace, EnvSolo, hard_coded_policy
 from config import *
 import utils 
-# from test import evaluate, plot, test_select_action
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
@@ -45,7 +44,7 @@ class ReplayMemory(object):
         return len(self.memory)
 
 class InputStack(object):
-    def __init__(self, env):  # TODO init fixing
+    def __init__(self, env):  
         self.input_stack = np.zeros((2*env.config.INPUT_FRAME_NUM, env.board_shape[0], env.board_shape[1]))
         observation, head_board, _ = env.init_board()
         for c in range(2 * env.config.INPUT_FRAME_NUM):
@@ -115,8 +114,6 @@ env.reset()
 env.render()
 
 input_stack = InputStack(env)
-# input_stack.update(env)
-
 
 if env.config.load_model is not None:
     policy_net = torch.load('pre_trained_models/{}'.format(env.config.load_model)).to(device)
@@ -140,7 +137,7 @@ if env.config.load_opponent is not None:
     print('load opponent model')
     
     if ~torch.cuda.is_available():
-        player2_net = torch.load('pre_trained_models/{}'.format(env.config.load_opponent), map_location=torch.device('cpu'))
+        player2_net = torch.load('pre_trained_models/indpQ_episode_50000_model_1.pth'.format(env.config.load_opponent), map_location=torch.device('cpu'))
     else:
         player2_net = torch.load('pre_trained_models/{}'.format(env.config.load_opponent))
     
@@ -156,12 +153,10 @@ def select_action(input_stack, env):
             # found, so we pick action with the larger expected reward.
             input_tensor = torch.tensor(input_stack.input_stack, device=device).unsqueeze(0)
             output = policy_net(input_tensor)
-            # print('OUTPUT SHAPE', output.shape)
             if env.config.with_adjustment:
                 valid_actions = np.array(input_stack.valid_actions(player_num=1))
                 adjustement = np.finfo(float).max * (valid_actions - 1)
                 output = output + torch.tensor(adjustement, device=device)
-            # print('OUTPUT SHAPE', output.shape)
             output = output.max(1)[1].view(1, 1)
             return output
     else:
@@ -188,13 +183,8 @@ def optimize_model(input_stack, env):
     # (a final state would've been the one after which simulation ended)
     non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
                                           batch.next_state)), device=device, dtype=torch.bool)
-    # non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
-    # state_batch = torch.cat(batch.state)
-    # action_batch = torch.cat(batch.action)
-    # reward_batch = torch.cat(batch.reward)
 
     non_final_next_states = torch.cat([torch.tensor(s, device=device) for s in batch.next_state if s is not None])
-    # torch.tensor(input_stack.input_stack, device=device)
     state_batch = torch.cat(batch.state)
     action_batch = torch.cat(batch.action)
     reward_batch = torch.cat(batch.reward)
@@ -236,7 +226,6 @@ def optimize_model(input_stack, env):
         output = output + torch.tensor(adjustement, device=device)
 
     next_state_values[non_final_mask] = output.max(1)[0].detach()
-    # next_state_values[non_final_mask] = target_net(non_final_next_states).max(1)[0].detach()
 
     # Compute the expected Q values
     expected_state_action_values = (next_state_values * env.config.GAMMA) + reward_batch[:, 0]
@@ -255,7 +244,7 @@ def optimize_model(input_stack, env):
 def evaluate(policy_net):
     total_rewards = []
     win_loss = []
-    for e in range(env.config.EVAL_EPISODE): #probably put number of episodes in conifg
+    for e in range(env.config.EVAL_EPISODE):
         # Initialize the environment and state
         env.reset()
         input_stack.__init__(env)
@@ -274,7 +263,6 @@ def evaluate(policy_net):
 
             next_observation, reward, done, dictionary = env.step([action.item(), hard_coded_a])
 
-            # if env.config.show:
             env.render()
 
             input_stack.update(env)
@@ -306,9 +294,7 @@ def test_select_action(policy_net, input_stack, env, is_opponent=False):
             input_tensor = torch.tensor(input_stack.input_stack, device=device).unsqueeze(0)
 
         output = policy_net(input_tensor)
-        # print(output)
         if is_opponent:
-            # print(output)
             tmp = output[0,0]
             output[0,0] = output[0,2]
             output[0,2] = tmp
@@ -339,7 +325,6 @@ def plot(stats_list):
     reward_lower = avg_reward - std_reward
     plt.fill_between(episode, reward_lower, reward_upper, color='grey', alpha=.2,
                      label=r'$\pm$ 1 std. dev.')
-    # plt.save('Average Reward')
     utils.cond_mkdir('./plots/')
     plt.savefig('./plots/plot')
 
@@ -376,15 +361,14 @@ if __name__ == '__main__':
             next_state = input_stack.input_stack
 
             # Store the transition in memory
-            # memory.push(torch.tensor(state, action, next_state, reward)
             memory.push(torch.tensor(state, device=device).unsqueeze(0), torch.tensor(action, device=device), torch.tensor(next_state, device=device).unsqueeze(0), torch.tensor(reward, device=device))
 
-            # print('THIS HAPPENS')
             # Perform one step of the optimization (on the target network)
             optimize_model(input_stack, env)
             if done:
                 break
             env.render()
+            
         # Update the target network, copying all weights and biases in Tron_DQN
         if e % env.config.TARGET_UPDATE_FREQUENCY == 0:
             target_net.load_state_dict(policy_net.state_dict())
@@ -401,4 +385,3 @@ if __name__ == '__main__':
     print('Complete')
     env.render()
     plot(stats_list)
-    # env.close()

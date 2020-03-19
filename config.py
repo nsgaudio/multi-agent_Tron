@@ -18,10 +18,10 @@ class Config():
         self.colors          = ['white', 'red', 'blue', 'green', 'orange', 'purple']  # white is board color, others are cycles
         self.cmap            = colors.ListedColormap(self.colors[: self.num_players + 1])
         self.delay           = .00025
-        # self.delay           = 0.00025
+
         # other
         self.filename        = None
-        self.verbal          = False
+        self.verbal          = True
 
         # reward
         self.win             = 1.0
@@ -61,12 +61,16 @@ class Config():
         self.NUM_EPISODES            = 100000
 
         self.MODEL_EVAL_FREQUENCY    = 100
-        self.EVAL_EPISODE            = 1
+        self.EVAL_EPISODE            = 10
 
-        self.with_adjustment         = True
+        self.with_adjustment         = True # only choose valid move
 
-        # None or 'name.pth'
-        # self.load_model              = 'exp3_116k.pth'  # start training with pre-trained model
-        self.load_model              = None  # start training with pre-trained model
-        # self.load_opponent            = 'neg.pth'  # use pre-trained model instead of a hard-coded policy
-        self.load_opponent           = None  # use pre-trained model instead of a hard-coded policy
+        self.load_model              = None  # None or 'name.pth'
+        # None       : no pre-trained model
+        # 'name.pth' : use pre_trained/neme.pth as pre-trained model
+        
+        self.load_opponent           = 'indepQ_episode_50000_model' # None or 'name.pth' or 'name'
+        # None       : use hard-coded policy
+        # 'name.pth' : use pre_trained/neme.pth as opponent
+        # 'name'     : when using two model as opponent (hyperQ, indepQ)
+        #              pre_trained/neme_{1 or 2}.pth

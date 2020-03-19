@@ -4,7 +4,6 @@ from config import *
 from collections import deque
 
 from matplotlib import pyplot as plt
-from matplotlib import animation
 from matplotlib import colors
 
 
@@ -125,6 +124,7 @@ class EnvSolo(object):
                 self.head_board[self.snakes[i][-1].y, self.snakes[i][-1].x] = i + 1
             except IndexError:
                 print("IndexError: {}".format(self.snakes[i][-1]))
+
     def compute_rewards(self, status):
         """
             lose : 0
@@ -135,7 +135,6 @@ class EnvSolo(object):
 
         rewards[np.nonzero(status == 1)] = self.config.win
         rewards[np.nonzero(status == 0)] = self.config.lose 
-        # rewards[np.nonzero(status == 2)] = self.config.tie
 
         rewards += self.config.time_reward * self.num_iters
 
@@ -222,8 +221,7 @@ class EnvSolo(object):
     def render(self):
         if self.show:
             show_board(self.observation, self.head_board, self.cmap, delay=self.delay, filename=self.filename)
-        # else:
-        # print(self.observation)
+            # print(self.observation)
 
 class EnvTeam(EnvSolo):
     def __init__(self):

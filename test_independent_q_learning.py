@@ -4,16 +4,50 @@ import numpy as np
 import matplotlib.pyplot as plt
 import utils
 
-from env import EnvTeam
-from indepedent_DQN import test_select_action, hard_coded_policy, Tron_DQN, input_stack
+import torch.nn as nn
+import torch.nn.functional as F
 
-# from hyper_DQN import test_select_action, input_stack
-# from env import hard_coded_policy
+
+from env import EnvTeam
+
+class Tron_DQN(nn.Module):
+    def __init__(self, h, w, outputs, env):
+        super(Tron_DQN, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels=2*env.config.INPUT_FRAME_NUM, out_channels=16, kernel_size=env.config.KERNEL_SIZE, stride=env.config.STRIDE)
+        self.bn1 = nn.BatchNorm2d(16)
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=env.config.KERNEL_SIZE, stride=env.config.STRIDE)
+        self.bn2 = nn.BatchNorm2d(32)
+        self.conv3 = nn.Conv2d(32, 32, kernel_size=env.config.KERNEL_SIZE, stride=env.config.STRIDE)
+        self.bn3 = nn.BatchNorm2d(32)
+
+        # Number of Linear input connections depends on output of conv2d layers
+        # and therefore the input image size, so compute it.
+        def conv2d_size_out(size, kernel_size=env.config.KERNEL_SIZE, stride=env.config.STRIDE):
+            return (size - (kernel_size - 1) - 1) // stride  + 1
+        convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(w)))
+        convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(h)))
+        linear_input_size = convw * convh * 32
+        self.head = nn.Linear(linear_input_size, outputs)
+
+    # Called with either one element to determine next action, or a batch
+    # during optimization. Returns tensor([[left0exp,right0exp]...]).
+    def forward(self, x):
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = F.relu(self.bn2(self.conv2(x)))
+        x = F.relu(self.bn3(self.conv3(x)))
+        return self.head(x.view(x.size(0), -1))
+
+################################################################   
+# from indepedent_DQN import test_select_action, hard_coded_policy, Tron_DQN, input_stack
+
+from hyper_DQN import test_select_action, input_stack
+from env import hard_coded_policy
+################################################################ 
 
 
 env = EnvTeam()
 
-def evaluate(policy_net_1, policy_net_2):
+def evaluate(policy_net_1, policy_net_2, opponent_net1=None, opponent_net2=None):
     player_1_rewards = []
     player_2_rewards = []
     team_rewards = []
@@ -21,7 +55,7 @@ def evaluate(policy_net_1, policy_net_2):
     player_2_win = []
     team_win = []
 
-    for e in range(1):
+    for e in range(env.config.EVAL_EPISODE):
         # Initialize the environment and state
         env.reset()
         input_stack.__init__(env)
@@ -32,13 +66,18 @@ def evaluate(policy_net_1, policy_net_2):
             # Select and perform an action
             action_1 = test_select_action(policy_net_1, input_stack, env, player_num=1)
             action_2 = test_select_action(policy_net_2, input_stack, env, player_num=2)
-            hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board == 3)[0], prev_hard_coded_a,
-                                             env.config.board_shape, env.action_space, eps=env.config.hcp_eps)
-            hard_coded_b = hard_coded_policy(env.observation, np.argwhere(env.head_board == 4)[0], prev_hard_coded_b,
-                                             env.config.board_shape, env.action_space, eps=env.config.hcp_eps)
 
-            prev_hard_coded_a = hard_coded_a
-            prev_hard_coded_b = hard_coded_b
+            if env.config.load_opponent is not None:
+                hard_coded_a = test_select_action(opponent_net1, input_stack, env, 3, is_opponent=True).item()
+                hard_coded_b = test_select_action(opponent_net2, input_stack, env, 4, is_opponent=True).item()
+            else:
+                hard_coded_a = hard_coded_policy(env.observation, np.argwhere(env.head_board == 3)[0], prev_hard_coded_a,
+                                             env.config.board_shape, env.action_space, eps=env.config.hcp_eps)
+                hard_coded_b = hard_coded_policy(env.observation, np.argwhere(env.head_board == 4)[0], prev_hard_coded_b,
+                                             env.config.board_shape, env.action_space, eps=env.config.hcp_eps)
+                prev_hard_coded_a = hard_coded_a
+                prev_hard_coded_b = hard_coded_b
+            
             next_observation, reward, done, dictionary = env.step(
                 [action_1.item(), action_2.item(), hard_coded_a, hard_coded_b])
 
@@ -126,9 +165,6 @@ def plot(stats_list):
 
     episode = np.arange(1, len(avg_reward_1) + 1)
 
-    # utils.cond_mkdir('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots')
-
-
     plt.figure()
     plt.plot(episode, avg_reward_1)
     reward_upper = avg_reward_1 + std_reward_1
@@ -138,7 +174,6 @@ def plot(stats_list):
     plt.xlabel('Evaluation #')
     plt.ylabel('Reward')
     plt.title('Average Reward of Player 1')
-    # plt.savefig('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots/reward_1')
     plt.savefig('plots/reward_1')
 
     plt.figure()
@@ -150,7 +185,6 @@ def plot(stats_list):
     plt.xlabel('Evaluation #')
     plt.ylabel('Reward')
     plt.title('Average Reward of Player 2')
-    # plt.savefig('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots/reward_2')
     plt.savefig('plots/reward_2')
 
     plt.figure()
@@ -162,7 +196,6 @@ def plot(stats_list):
     plt.xlabel('Evaluation #')
     plt.ylabel('Reward')
     plt.title('Average Reward of Team')
-    # plt.savefig('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots/reward_team')
     plt.savefig('plots/reward_team')
 
     plt.figure()
@@ -170,7 +203,6 @@ def plot(stats_list):
     plt.xlabel('Evaluation #')
     plt.ylabel('Win (%)')
     plt.title('Win % of Player 1')
-    # plt.savefig('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots/wins_1')
     plt.savefig('plots/wins_1')
 
     plt.figure()
@@ -178,7 +210,6 @@ def plot(stats_list):
     plt.xlabel('Evaluation #')
     plt.ylabel('Win (%)')
     plt.title('Win % of Player 2')
-    # plt.savefig('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots/wins_2')
     plt.savefig('plots/wins_2')
 
     plt.figure()
@@ -186,12 +217,10 @@ def plot(stats_list):
     plt.xlabel('Evaluation #')
     plt.ylabel('Win (%)')
     plt.title('Win % of Team')
-    # plt.savefig('C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/plots/wins_team')
     plt.savefig('plots/wins_team')
 
-# model_dir = 'C:/Users/Aruns/Documents/CS234/Project/project_ind/multi-agent_Tron/models'
-model_dir = 'models/indp_DQN'
-# model_dir = 'models/hyper_Q'
+# model_dir = 'models/indp_DQN'
+model_dir = 'models/hyper_Q'
 
 models = os.listdir(model_dir)
 stats_list = []
@@ -203,9 +232,20 @@ for i in range(0, len(models), 2):
     model_2 = models[i+1]
     policy_net_1 = torch.load(os.path.join(model_dir, model_1), map_location=torch.device('cpu'))
     policy_net_2 = torch.load(os.path.join(model_dir, model_2), map_location=torch.device('cpu'))
-    stats_list.append(evaluate(policy_net_1, policy_net_2))
-    #stats_list.append(evaluate_hard())
 
-#plot(stats_list)
+    opponent_net1 = None
+    opponent_net2 = None
+    if env.config.load_opponent is not None:
+        print('load opponent model')
+        if ~torch.cuda.is_available():
+            opponent_net1 = torch.load('pre_trained_models/indpQ_episode_50000_model_1.pth'.format(env.config.load_opponent), map_location=torch.device('cpu'))
+            opponent_net2 = torch.load('pre_trained_models/indpQ_episode_50000_model_2.pth'.format(env.config.load_opponent), map_location=torch.device('cpu'))
+        else:
+            opponent_net1 = torch.load('pre_trained_models/{}_1.pth'.format(env.config.load_opponent))
+            opponent_net2 = torch.load('pre_trained_models/{}_2.pth'.format(env.config.load_opponent))
+
+    stats_list.append(evaluate(policy_net_1, policy_net_2, opponent_net1=opponent_net1, opponent_net2=opponent_net2))
+    # stats_list.append(evaluate(policy_net_1, policy_net_2))
+
 print(stats_list)
     
